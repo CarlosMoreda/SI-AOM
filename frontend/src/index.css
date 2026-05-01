@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg-main: #06131d;
+  --bg-deep: #030b12;
+  --surface: rgba(9, 29, 43, 0.92);
+  --surface-strong: rgba(12, 38, 55, 0.96);
+  --surface-soft: rgba(14, 45, 63, 0.64);
+  --surface-muted: rgba(18, 55, 73, 0.72);
+  --ink: #e6f3f8;
+  --ink-soft: #b7d3df;
+  --muted: #83a8b8;
+  --line: rgba(150, 205, 228, 0.2);
+  --line-strong: rgba(155, 219, 242, 0.34);
+  --primary: #42b7df;
+  --primary-dark: #1d8fb6;
+  --primary-soft: rgba(66, 183, 223, 0.14);
+  --accent: #33c7aa;
+  --accent-soft: rgba(51, 199, 170, 0.14);
+  --warning: #f0b454;
+  --warning-soft: rgba(240, 180, 84, 0.14);
+  --danger: #ef7d7d;
+  --danger-soft: rgba(239, 125, 125, 0.14);
+  --success: #78dfa9;
+  --success-soft: rgba(120, 223, 169, 0.14);
+  --shadow: 0 18px 38px rgba(1, 8, 14, 0.32);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --mono: 'IBM Plex Mono', Consolas, monospace;
+  --sans: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--bg-main), var(--bg-deep));
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1 {
+  color: var(--ink);
+  font-size: 2rem;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+h2 {
+  color: var(--ink);
+  font-size: 1.45rem;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+h3 {
+  color: var(--ink);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: 750;
+}
+
+h4 {
+  color: var(--ink);
+  font-size: 0.98rem;
+  line-height: 1.3;
+  font-weight: 750;
+}
+
+code {
+  font-family: var(--mono);
+}

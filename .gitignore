@@ -1,0 +1,31 @@
+# Editor / IDE / agent settings
+.claude/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Logs e dumps
+*.log
+logs/
+
+# Python (cobertura caso alguem corra o backend a partir da raiz)
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Node (cobertura caso alguem corra o frontend a partir da raiz)
+node_modules/
+dist/
+dist-ssr/
+
+# Variaveis de ambiente
+.env
+.env.*
+!.env.example
