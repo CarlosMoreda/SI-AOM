@@ -453,7 +453,7 @@ def get_orcamento_options(model_base_dir: Path = MODEL_BASE_DIR) -> dict[str, An
         dataset = pd.read_csv(dataset_csv, sep=";", encoding="utf-8-sig")
         return _options_from_dataset(dataset, source="dataset_csv")
 
-    dataset = build_dataset("orcamento", include_incomplete=True)
+    dataset = build_dataset("orcamento")
     if not dataset.empty:
         return _options_from_dataset(dataset, source="base_dados")
 
@@ -465,7 +465,7 @@ def predict_custo_from_params(
     model_base_dir: Path = MODEL_BASE_DIR,
 ) -> dict[str, Any]:
     """
-    Prevê os custos orcados (materiais, operacoes, servicos) a partir de
+    Preve os custos orcados (materiais, operacoes, servicos) a partir de
     parametros do projeto, sem necessidade de um orcamento existente na BD.
     """
     parametros = dict(parametros)
@@ -664,5 +664,3 @@ def train_models(
             results.append({"dataset_type": current, "status": "error", "detail": str(exc)})
 
     return results
-
-

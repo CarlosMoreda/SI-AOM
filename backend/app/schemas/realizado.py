@@ -4,10 +4,6 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-# =========================
-# REALIZADO MATERIAL
-# =========================
-
 class RealizadoMaterialCreate(BaseModel):
     id_linha_material: int = Field(gt=0)
     quantidade: Decimal = Field(gt=0)
@@ -35,10 +31,6 @@ class RealizadoMaterialResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-# =========================
-# REALIZADO OPERAÇÃO
-# =========================
 
 class RealizadoOperacaoCreate(BaseModel):
     id_linha_operacao: int = Field(gt=0)
@@ -68,10 +60,6 @@ class RealizadoOperacaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-# =========================
-# REALIZADO SERVIÇO
-# =========================
-
 class RealizadoServicoCreate(BaseModel):
     id_linha_servico: int = Field(gt=0)
     quantidade: Decimal = Field(gt=0)
@@ -96,10 +84,6 @@ class RealizadoServicoResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-# =========================
-# RESUMO POR ORÇAMENTO
-# =========================
 
 class RealizadoResumoOrcamentoResponse(BaseModel):
     id_orcamento: int

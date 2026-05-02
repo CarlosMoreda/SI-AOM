@@ -70,7 +70,7 @@ def recalcular_totais_orcamento(db: Session, id_orcamento: int) -> Orcamento:
     orcamento.custo_total_orcado = custo_total_orcado
     orcamento.horas_totais_previstas = horas_totais
 
-    # Recalcula preco_venda quando margem_percentual está definida.
+    # Recalcula preco_venda quando margem_percentual esta definida.
     if orcamento.margem_percentual is not None:
         margem = _to_decimal(orcamento.margem_percentual) / Decimal("100")
         orcamento.preco_venda = _q2(

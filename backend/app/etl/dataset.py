@@ -10,13 +10,8 @@ from app.database import engine
 from app.etl.queries import DATASET_QUERIES
 
 
-def build_dataset(dataset_type: str = "orcamento", include_incomplete: bool = True) -> pd.DataFrame:
-    """Executa a query SQL do tipo pedido e devolve o DataFrame.
-
-    Atualmente so existe um tipo de dataset ("orcamento"); o parametro
-    include_incomplete e mantido por compatibilidade com chamadas externas
-    mas nao tem efeito (o WHERE da query ja filtra orcamentos validos).
-    """
+def build_dataset(dataset_type: str = "orcamento") -> pd.DataFrame:
+    """Executa a query SQL do tipo pedido e devolve o DataFrame."""
     if dataset_type not in DATASET_QUERIES:
         raise ValueError(
             f"dataset_type '{dataset_type}' invalido (suportado: 'orcamento')"

@@ -312,7 +312,7 @@ def train_one_dataset(
         r2 = None
         rows_test = 0
 
-    # Cross-validation adiciona uma noção de estabilidade da metrica.
+    # Cross-validation adiciona uma nocao de estabilidade da metrica.
     if len(X) >= 25:
         cv_folds = min(5, max(3, len(X) // 10))
         cv = KFold(n_splits=cv_folds, shuffle=True, random_state=random_state)

@@ -76,10 +76,6 @@ def _calc_custo_servico(quantidade: Decimal, preco: Decimal) -> Decimal:
     return _q2(_to_decimal(quantidade) * _to_decimal(preco))
 
 
-# =========================
-# MATERIAIS DO ORÇAMENTO
-# =========================
-
 @router.get(
     "/{id_orcamento}/materiais",
     response_model=list[DetalheMaterialOrcamentoResponse],
@@ -224,10 +220,6 @@ def eliminar_material_orcamento(id_linha_material: int, db: Session = Depends(ge
     return None
 
 
-# =========================
-# OPERAÇÕES DO ORÇAMENTO
-# =========================
-
 @router.get(
     "/{id_orcamento}/operacoes",
     response_model=list[DetalheOperacaoOrcamentoResponse],
@@ -368,10 +360,6 @@ def eliminar_operacao_orcamento(id_linha_operacao: int, db: Session = Depends(ge
         )
     return None
 
-
-# =========================
-# SERVIÇOS DO ORÇAMENTO
-# =========================
 
 @router.get(
     "/{id_orcamento}/servicos",
