@@ -5,17 +5,17 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class MLPredictCustoRequest(BaseModel):
     """Parametros do projeto para previsao de custo real."""
-    tipologia: str | None = None
-    complexidade: str | None = None
+    tipologia: str | None = Field(default=None, max_length=100)
+    complexidade: str | None = Field(default=None, max_length=50)
     peso_total_kg: float | None = Field(default=None, gt=0)
     numero_pecas: int | None = Field(default=None, ge=1)
-    material_principal: str | None = None
-    tratamento_superficie: str | None = None
-    processo_corte: str | None = None
+    material_principal: str | None = Field(default=None, max_length=100)
+    tratamento_superficie: str | None = Field(default=None, max_length=100)
+    processo_corte: str | None = Field(default=None, max_length=100)
     lead_time: int | None = Field(default=None, ge=1)
     # Opcionais: ligacao a um orcamento ja existente e nota livre.
     # Sao usados apenas para persistir a previsao em previsao_ml.
-    id_orcamento: int | None = None
+    id_orcamento: int | None = Field(default=None, gt=0)
     observacoes: str | None = None
 
     @model_validator(mode="after")

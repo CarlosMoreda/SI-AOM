@@ -8,15 +8,17 @@ from app.dependencies import ROLE_ADMIN, require_roles
 from app.database import engine
 from app.routers import (
     auth,
+    clientes,
     comparacao,
     detalhes_orcamento,
     materiais,
+    ml,
     operacoes,
     orcamentos,
     projetos,
     realizado,
     servicos,
-    ml,
+    utilizadores,
 )
 
 app = FastAPI(
@@ -27,18 +29,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
+app.include_router(clientes.router, prefix="/clientes", tags=["Clientes"])
+app.include_router(utilizadores.router, prefix="/utilizadores", tags=["Utilizadores"])
 app.include_router(projetos.router, prefix="/projetos", tags=["Projetos"])
 app.include_router(
     orcamentos.router,

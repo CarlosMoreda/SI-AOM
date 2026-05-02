@@ -1,23 +1,23 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DetalheMaterialOrcamentoCreate(BaseModel):
-    id_material: int
-    quantidade: Decimal
-    peso_kg: Decimal | None = None
-    desperdicio_percent: Decimal = Decimal("0")
-    preco_unitario_snapshot: Decimal | None = None
+    id_material: int = Field(gt=0)
+    quantidade: Decimal = Field(gt=0)
+    peso_kg: Decimal | None = Field(default=None, ge=0)
+    desperdicio_percent: Decimal = Field(default=Decimal("0"), ge=0, le=100)
+    preco_unitario_snapshot: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
 class DetalheMaterialOrcamentoUpdate(BaseModel):
-    id_material: int | None = None
-    quantidade: Decimal | None = None
-    peso_kg: Decimal | None = None
-    desperdicio_percent: Decimal | None = None
-    preco_unitario_snapshot: Decimal | None = None
+    id_material: int | None = Field(default=None, gt=0)
+    quantidade: Decimal | None = Field(default=None, gt=0)
+    peso_kg: Decimal | None = Field(default=None, ge=0)
+    desperdicio_percent: Decimal | None = Field(default=None, ge=0, le=100)
+    preco_unitario_snapshot: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 

@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,19 +13,34 @@ from app.schemas.auth import LoginRequest, TokenResponse, UtilizadorMe
 
 router = APIRouter()
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _password_bytes(password: str) -> bytes:
+    encoded = password.encode("utf-8")
+    if len(encoded) > 72:
+        raise ValueError("Password demasiado longa")
+    return encoded
 
 
 def verificar_password(password: str, password_hash: str) -> bool:
     try:
-        return _pwd_context.verify(password, password_hash)
-    except Exception:
-        # Fallback para passwords em texto simples (dados de desenvolvimento)
-        return password == password_hash
+        return bcrypt.checkpw(
+            _password_bytes(password),
+            password_hash.encode("utf-8"),
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+def _password_legacy_texto_simples(password: str, password_hash: str) -> bool:
+    return settings.allow_plaintext_password_fallback and password == password_hash
 
 
 def hash_password(password: str) -> str:
-    return _pwd_context.hash(password)
+    return bcrypt.hashpw(_password_bytes(password), bcrypt.gensalt()).decode("utf-8")
+
+
+def _password_precisa_rehash(password_hash: str) -> bool:
+    return not password_hash.startswith(("$2a$", "$2b$", "$2y$"))
 
 
 def criar_token(data: dict) -> str:
@@ -41,7 +56,23 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         select(Utilizador).where(Utilizador.email == payload.email)
     )
 
-    if not utilizador or not verificar_password(payload.password, utilizador.password_hash):
+    if not utilizador:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email ou password incorretos",
+        )
+
+    password_valida = verificar_password(payload.password, utilizador.password_hash)
+    password_legacy = False
+
+    if not password_valida and _password_legacy_texto_simples(
+        payload.password,
+        utilizador.password_hash,
+    ):
+        password_valida = True
+        password_legacy = True
+
+    if not password_valida:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou password incorretos",
@@ -52,6 +83,16 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Conta desativada",
         )
+
+    if password_legacy or _password_precisa_rehash(utilizador.password_hash):
+        try:
+            utilizador.password_hash = hash_password(payload.password)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            )
+        db.commit()
 
     token = criar_token({
         "sub": str(utilizador.id_utilizador),

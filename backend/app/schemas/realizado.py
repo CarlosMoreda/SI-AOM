@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # =========================
@@ -9,17 +9,17 @@ from pydantic import BaseModel, ConfigDict
 # =========================
 
 class RealizadoMaterialCreate(BaseModel):
-    id_linha_material: int
-    quantidade: Decimal
-    peso_kg: Decimal | None = None
-    custo_unitario_real: Decimal | None = None
+    id_linha_material: int = Field(gt=0)
+    quantidade: Decimal = Field(gt=0)
+    peso_kg: Decimal | None = Field(default=None, ge=0)
+    custo_unitario_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
 class RealizadoMaterialUpdate(BaseModel):
-    quantidade: Decimal | None = None
-    peso_kg: Decimal | None = None
-    custo_unitario_real: Decimal | None = None
+    quantidade: Decimal | None = Field(default=None, gt=0)
+    peso_kg: Decimal | None = Field(default=None, ge=0)
+    custo_unitario_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
@@ -41,17 +41,17 @@ class RealizadoMaterialResponse(BaseModel):
 # =========================
 
 class RealizadoOperacaoCreate(BaseModel):
-    id_linha_operacao: int
-    horas: Decimal
-    tempo_setup_h: Decimal = Decimal("0")
-    custo_hora_real: Decimal | None = None
+    id_linha_operacao: int = Field(gt=0)
+    horas: Decimal = Field(gt=0)
+    tempo_setup_h: Decimal = Field(default=Decimal("0"), ge=0)
+    custo_hora_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
 class RealizadoOperacaoUpdate(BaseModel):
-    horas: Decimal | None = None
-    tempo_setup_h: Decimal | None = None
-    custo_hora_real: Decimal | None = None
+    horas: Decimal | None = Field(default=None, gt=0)
+    tempo_setup_h: Decimal | None = Field(default=None, ge=0)
+    custo_hora_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
@@ -73,15 +73,15 @@ class RealizadoOperacaoResponse(BaseModel):
 # =========================
 
 class RealizadoServicoCreate(BaseModel):
-    id_linha_servico: int
-    quantidade: Decimal
-    preco_unitario_real: Decimal | None = None
+    id_linha_servico: int = Field(gt=0)
+    quantidade: Decimal = Field(gt=0)
+    preco_unitario_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
 class RealizadoServicoUpdate(BaseModel):
-    quantidade: Decimal | None = None
-    preco_unitario_real: Decimal | None = None
+    quantidade: Decimal | None = Field(default=None, gt=0)
+    preco_unitario_real: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
@@ -111,4 +111,11 @@ class RealizadoResumoOrcamentoResponse(BaseModel):
 
 
 class RealizadoResumoBatchRequest(BaseModel):
-    ids_orcamento: list[int]
+    ids_orcamento: list[int] = Field(default_factory=list, max_length=500)
+
+    @field_validator("ids_orcamento")
+    @classmethod
+    def validar_ids_orcamento(cls, value: list[int]) -> list[int]:
+        if any(id_orcamento <= 0 for id_orcamento in value):
+            raise ValueError("Todos os ids_orcamento devem ser positivos")
+        return value

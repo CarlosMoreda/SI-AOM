@@ -1,13 +1,13 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ServicoBase(BaseModel):
-    codigo: str
-    nome: str
-    unidade: str
-    preco_unitario_default: Decimal
+    codigo: str = Field(min_length=1, max_length=50)
+    nome: str = Field(min_length=1, max_length=255)
+    unidade: str = Field(min_length=1, max_length=20)
+    preco_unitario_default: Decimal = Field(ge=0)
     ativo: bool = True
 
 
@@ -16,10 +16,10 @@ class ServicoCreate(ServicoBase):
 
 
 class ServicoUpdate(BaseModel):
-    codigo: str | None = None
-    nome: str | None = None
-    unidade: str | None = None
-    preco_unitario_default: Decimal | None = None
+    codigo: str | None = Field(default=None, min_length=1, max_length=50)
+    nome: str | None = Field(default=None, min_length=1, max_length=255)
+    unidade: str | None = Field(default=None, min_length=1, max_length=20)
+    preco_unitario_default: Decimal | None = Field(default=None, ge=0)
     ativo: bool | None = None
 
 

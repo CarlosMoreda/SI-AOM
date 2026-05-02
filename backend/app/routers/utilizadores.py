@@ -53,7 +53,15 @@ def criar_utilizador(payload: UtilizadorCreate, db: Session = Depends(get_db)):
         )
 
     dados["email"] = _normalize_email(dados["email"])
-    utilizador = Utilizador(**dados, password_hash=hash_password(password))
+    try:
+        password_hash = hash_password(password)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    utilizador = Utilizador(**dados, password_hash=password_hash)
 
     db.add(utilizador)
     try:
@@ -91,8 +99,20 @@ def atualizar_utilizador(
     for campo, valor in dados.items():
         setattr(utilizador, campo, valor)
 
-    if password:
-        utilizador.password_hash = hash_password(password.strip())
+    if password is not None:
+        password = password.strip()
+        if not password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password obrigatoria",
+            )
+        try:
+            utilizador.password_hash = hash_password(password)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            )
 
     try:
         db.commit()

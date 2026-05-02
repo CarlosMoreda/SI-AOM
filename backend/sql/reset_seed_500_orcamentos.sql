@@ -37,13 +37,12 @@ RESTART IDENTITY CASCADE;
 -- gestor@siaom.local   -> Gestor@123
 -- orc@siaom.local      -> Orc@123
 -- producao@siaom.local -> Prod@123
--- Nota: guardado em texto para evitar dependencia de extensoes no seed.
 INSERT INTO public.utilizador (nome, email, password_hash, perfil, ativo)
 VALUES
-    ('Administrador SI-AOM', 'admin@siaom.local', 'Admin@123', 'administrador', true),
-    ('Gestor Fabrico', 'gestor@siaom.local', 'Gestor@123', 'gestor', true),
-    ('Orcamentista Senior', 'orc@siaom.local', 'Orc@123', 'orcamentista', true),
-    ('Tecnico Producao', 'producao@siaom.local', 'Prod@123', 'producao', true);
+    ('Administrador SI-AOM', 'admin@siaom.local', '$2b$12$h1oVlIzipBQoxaVuiJq/Vur7tTcZxjzfEFk0Rh5QKr5I5tOX3ZKXK', 'administrador', true),
+    ('Gestor Fabrico', 'gestor@siaom.local', '$2b$12$St0lCdIfTqz71VTcJtKAaOEnKISvhOd5T0dYepb2izPnXvYJ/K5iW', 'gestor', true),
+    ('Orcamentista Senior', 'orc@siaom.local', '$2b$12$qNq.28u.aCdWnmZcrEr2j.FQLzAEVBlbACxX8huTjEg7T6nb4n82O', 'orcamentista', true),
+    ('Tecnico Producao', 'producao@siaom.local', '$2b$12$l/xbsoY90.X9qtaJqVpPyeQnKpRPzs457qDYwf/3pQ3j5LyoWsEta', 'producao', true);
 
 INSERT INTO public.cliente (nome, nif, email, telefone, morada, observacoes, ativo)
 SELECT
