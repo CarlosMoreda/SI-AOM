@@ -986,6 +986,33 @@ tbody tr:hover td {
   line-height: 1.5;
 }
 
+.ml-dataset-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+
+.ml-dataset-meta span,
+.ml-range-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.ml-dataset-meta span {
+  padding: 4px 8px;
+  border: 1px solid rgba(150, 205, 228, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 29, 43, 0.35);
+  font-weight: 750;
+}
+
+.ml-range-note {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.35;
+}
+
 .ml-result-box {
   margin-top: 18px;
   padding: 14px;

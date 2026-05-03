@@ -13,7 +13,7 @@ import {
   listProjectBudgets,
   listProjects,
 } from '../services/projectService'
-import { getRealizadoResumoBatch } from '../services/realizadoService'
+import { getRealizadoResumoBatch, normalizeOrcamentoIds } from '../services/realizadoService'
 import { listServicos } from '../services/servicoService'
 
 const EMPTY_PROJECT_ANALYSIS = {
@@ -263,7 +263,12 @@ export function useDashboard(token, perfil) {
     setBudgetRealError('')
 
     try {
-      const idsOrcamento = budgetRows.map((budget) => budget.id_orcamento).filter(Boolean)
+      const idsOrcamento = normalizeOrcamentoIds(budgetRows.map((budget) => budget.id_orcamento))
+      if (idsOrcamento.length === 0) {
+        setBudgetRealTotals({})
+        return
+      }
+
       const rows = await getRealizadoResumoBatch(token, idsOrcamento)
       const totalsByBudget = Object.fromEntries(idsOrcamento.map((id) => [id, 0]))
 

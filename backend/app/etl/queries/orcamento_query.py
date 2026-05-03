@@ -43,7 +43,6 @@ SELECT
     p.numero_pecas,
     p.material_principal,
     p.tratamento_superficie,
-    p.processo_corte,
     COALESCE(
         p.lead_time,
         CASE
@@ -53,34 +52,6 @@ SELECT
             ELSE NULL
         END
     ) AS lead_time,
-    CASE
-        WHEN p.numero_pecas IS NULL OR p.numero_pecas = 0
-         OR p.peso_total_kg IS NULL
-        THEN NULL
-        ELSE p.peso_total_kg / p.numero_pecas
-    END AS peso_por_peca_kg,
-    CASE
-        WHEN p.peso_total_kg IS NULL OR p.peso_total_kg = 0
-         OR COALESCE(
-                p.lead_time,
-                CASE
-                    WHEN p.data_inicio IS NOT NULL
-                     AND p.data_entrega_prevista IS NOT NULL
-                    THEN (p.data_entrega_prevista - p.data_inicio)
-                    ELSE NULL
-                END
-            ) IS NULL
-        THEN NULL
-        ELSE COALESCE(
-            p.lead_time,
-            CASE
-                WHEN p.data_inicio IS NOT NULL
-                 AND p.data_entrega_prevista IS NOT NULL
-                THEN (p.data_entrega_prevista - p.data_inicio)
-                ELSE NULL
-            END
-        ) / (p.peso_total_kg / 1000.0)
-    END AS lead_time_por_tonelada,
     o.custo_total_materiais,
     o.custo_total_operacoes,
     o.custo_total_servicos,

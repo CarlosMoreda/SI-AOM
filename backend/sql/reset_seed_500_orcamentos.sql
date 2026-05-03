@@ -2,10 +2,12 @@
 -- Objetivos:
 -- 1) Apagar todos os dados
 -- 2) Criar dados base realistas (materiais, operacoes, servicos)
--- 3) Criar >= 500 orcamentos
+-- 3) Criar >= 20000 orcamentos
 -- 4) Garantir >= 15 linhas por orcamento (8 materiais + 5 operacoes + 2 servicos)
--- 5) Popular tabelas de realizados
--- 6) Distribuir custos em torno de 5k / 20k / 50k / 70k + valores dispersos
+-- 5) Popular tabelas de realizados (apenas para projetos em execucao/concluidos)
+-- 6) Distribuir custos de poucos milhares a varias centenas de milhares de euros
+-- 7) Espalhar datas por 3 anos (2024-2026) com coerencia entre estado e idade
+-- 8) Introduzir outliers realistas nos realizados (~10% derrapas/folgas anormais)
 
 -- Se a sessao anterior ficou em erro, limpa o estado antes de iniciar.
 ROLLBACK;
@@ -32,83 +34,106 @@ TRUNCATE TABLE
     public.utilizador
 RESTART IDENTITY CASCADE;
 
--- Utilizadores base (passwords em texto para login):
--- admin@siaom.local    -> Admin@123
--- gestor@siaom.local   -> Gestor@123
--- orc@siaom.local      -> Orc@123
--- producao@siaom.local -> Prod@123
+-- Utilizadores base (password = nome curto do perfil):
+-- admin@siaom.com        -> admin
+-- gestor@siaom.com       -> gestor
+-- orcamentista@siaom.com -> orcamentista
+-- producao@siaom.com     -> producao
 INSERT INTO public.utilizador (nome, email, password_hash, perfil, ativo)
 VALUES
-    ('Administrador SI-AOM', 'admin@siaom.local', '$2b$12$h1oVlIzipBQoxaVuiJq/Vur7tTcZxjzfEFk0Rh5QKr5I5tOX3ZKXK', 'administrador', true),
-    ('Gestor Fabrico', 'gestor@siaom.local', '$2b$12$St0lCdIfTqz71VTcJtKAaOEnKISvhOd5T0dYepb2izPnXvYJ/K5iW', 'gestor', true),
-    ('Orcamentista Senior', 'orc@siaom.local', '$2b$12$qNq.28u.aCdWnmZcrEr2j.FQLzAEVBlbACxX8huTjEg7T6nb4n82O', 'orcamentista', true),
-    ('Tecnico Producao', 'producao@siaom.local', '$2b$12$l/xbsoY90.X9qtaJqVpPyeQnKpRPzs457qDYwf/3pQ3j5LyoWsEta', 'producao', true);
+    ('Admin', 'admin@siaom.com', '$2b$12$GgVp5e4zbPMGs9pcH/Qo6.cr8eukcYDysakisK1vVvnt04ac0cZc2', 'administrador', true),
+    ('Gestor', 'gestor@siaom.com', '$2b$12$g0kRJndOBN9k8qZp/NfOtOBXiskkWajczcgjgEs9Knw51TKJcZEc.', 'gestor', true),
+    ('Orcamentista', 'orcamentista@siaom.com', '$2b$12$Ccff3YcLJLStVXq9eM6IS.gkQ4rF8pmrl4tXJp1CFD4D3Xvkfice.', 'orcamentista', true),
+    ('Producao', 'producao@siaom.com', '$2b$12$m0pQuMG1MPmfpFJk9Yflyei1elP5/tgZefV84.F/xkk0AuF9pOgTi', 'producao', true);
 
 INSERT INTO public.cliente (nome, nif, email, telefone, morada, observacoes, ativo)
 SELECT
-    format('Cliente %s Metalworks', gs),
+    CASE (gs % 8)
+        WHEN 0 THEN format('Metalomecanica Norte %s', gs)
+        WHEN 1 THEN format('Construtora Atlantico %s', gs)
+        WHEN 2 THEN format('Industria Modular Centro %s', gs)
+        WHEN 3 THEN format('Logistica Sul %s', gs)
+        WHEN 4 THEN format('Manutencao Industrial %s', gs)
+        WHEN 5 THEN format('Equipamentos Tecnicos %s', gs)
+        WHEN 6 THEN format('Obras Publicas %s', gs)
+        ELSE format('Cliente Industrial %s', gs)
+    END,
     lpad((200000000 + gs)::text, 9, '0'),
-    format('compras%02s@cliente.pt', gs),
-    format('+351 91%07s', lpad((gs * 271)::text, 7, '0')),
+    format('compras%s@cliente.pt', lpad(gs::text, 3, '0')),
+    format('+351 91%s', lpad(((gs * 271) % 10000000)::text, 7, '0')),
     format('Zona Industrial Lote %s, Portugal', gs),
     'Cliente gerado automaticamente para seed.',
     true
-FROM generate_series(1, 35) AS gs;
+FROM generate_series(1, 250) AS gs;
 
 INSERT INTO public.material (codigo, nome, unidade, tipo, custo_unitario_default, ativo, qualidade_material)
 VALUES
-    ('MAT-TUBO-20X20X2', 'Tubo 20x20x2 S275JR', 'm', 'tubo', 6.2000, true, 'S275JR'),
-    ('MAT-TUBO-30X30X2', 'Tubo 30x30x2 S275JR', 'm', 'tubo', 7.8000, true, 'S275JR'),
-    ('MAT-TUBO-40X40X3', 'Tubo 40x40x3 S275JR', 'm', 'tubo', 12.4000, true, 'S275JR'),
-    ('MAT-TUBO-60X40X3', 'Tubo 60x40x3 S275JR', 'm', 'tubo', 14.9000, true, 'S275JR'),
-    ('MAT-CHAPA-3MM', 'Chapa S275JR 3mm', 'kg', 'chapa', 1.4500, true, 'S275JR'),
-    ('MAT-CHAPA-5MM', 'Chapa S275JR 5mm', 'kg', 'chapa', 1.6200, true, 'S275JR'),
-    ('MAT-CHAPA-8MM', 'Chapa S275JR 8mm', 'kg', 'chapa', 1.8800, true, 'S275JR'),
-    ('MAT-PERFIL-UPN120', 'Perfil UPN 120', 'm', 'perfil', 13.5000, true, 'S275JR'),
-    ('MAT-PERFIL-IPE160', 'Perfil IPE 160', 'm', 'perfil', 19.4000, true, 'S275JR'),
-    ('MAT-CANT-50X5', 'Cantoneira 50x5', 'm', 'perfil', 4.9000, true, 'S275JR'),
-    ('MAT-PLAT-80X8', 'Platina 80x8', 'm', 'perfil', 7.1000, true, 'S275JR'),
-    ('MAT-HEA200', 'Perfil HEA 200', 'm', 'perfil', 42.5000, true, 'S355JR'),
-    ('MAT-HEB240', 'Perfil HEB 240', 'm', 'perfil', 58.9000, true, 'S355JR'),
-    ('MAT-PARAF-M16', 'Parafuso sextavado M16', 'un', 'fixacao', 0.6500, true, '8.8 zincado'),
-    ('MAT-ANCORA-M20', 'Chumbador quimico M20', 'un', 'fixacao', 3.2000, true, 'A4'),
-    ('MAT-REDE-MESH', 'Rede eletrossoldada 100x100', 'm2', 'malha', 5.8000, true, 'B500'),
-    ('MAT-TUBO-INOX-30X2', 'Tubo inox 30x2 AISI304', 'm', 'tubo', 14.8000, true, 'AISI304'),
-    ('MAT-GRIT-SA25', 'Abrasivo jateamento SA2.5', 'kg', 'consumivel', 0.4200, true, 'G25'),
-    ('MAT-PRIM-EPOXI', 'Primario epoxi rico em zinco', 'kg', 'pintura', 4.2000, true, 'Classe C4'),
-    ('MAT-TINTA-PU', 'Tinta acabamento PU', 'kg', 'pintura', 7.9000, true, 'RAL variavel'),
-    ('MAT-ARAME-MAG10', 'Arame MAG 1.0mm', 'kg', 'consumivel', 3.6000, true, 'ER70S-6'),
-    ('MAT-GAS-M21', 'Gas mistura M21', 'm3', 'consumivel', 2.8500, true, 'M21'),
-    ('MAT-DISCO-125', 'Disco corte 125mm', 'un', 'consumivel', 1.1000, true, 'Inox/aco'),
-    ('MAT-ELET-7018', 'Eletrodo E7018', 'kg', 'consumivel', 4.4000, true, 'E7018');
+    ('MAT-TUBO-S235-30X30X2', 'Tubo quadrado 30x30x2 S235JR', 'm', 'tubo', 7.2000, true, 'S235JR'),
+    ('MAT-TUBO-S235-40X40X2', 'Tubo quadrado 40x40x2 S235JR', 'm', 'tubo', 9.8000, true, 'S235JR'),
+    ('MAT-TUBO-S235-60X40X3', 'Tubo retangular 60x40x3 S235JR', 'm', 'tubo', 14.5000, true, 'S235JR'),
+    ('MAT-TUBO-S355-50X50X3', 'Tubo quadrado 50x50x3 S355JR', 'm', 'tubo', 15.9000, true, 'S355JR'),
+    ('MAT-TUBO-S355-80X40X3', 'Tubo retangular 80x40x3 S355JR', 'm', 'tubo', 18.7000, true, 'S355JR'),
+    ('MAT-TUBO-S355-100X50X4', 'Tubo retangular 100x50x4 S355JR', 'm', 'tubo', 29.4000, true, 'S355JR'),
+    ('MAT-TUBO-S355-RD48X3', 'Tubo redondo 48.3x3.2 S355JR', 'm', 'tubo', 12.6000, true, 'S355JR'),
+    ('MAT-TUBO-INOX304-30X30X2', 'Tubo quadrado inox 30x30x2 AISI 304', 'm', 'tubo', 18.6000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-50X30X2', 'Tubo retangular inox 50x30x2 AISI 304', 'm', 'tubo', 24.8000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-80X40X3', 'Tubo retangular inox 80x40x3 AISI 304', 'm', 'tubo', 41.5000, true, 'AISI304'),
+    ('MAT-TUBO-ALU6060-30X30X2', 'Tubo quadrado aluminio 30x30x2 6060', 'm', 'tubo', 8.9000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-50X30X2', 'Tubo retangular aluminio 50x30x2 6060', 'm', 'tubo', 11.7000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-80X40X3', 'Tubo retangular aluminio 80x40x3 6060', 'm', 'tubo', 18.2000, true, 'AL6060'),
+    ('MAT-CHAPA-LASER-S235-3MM', 'Chapa laser 3mm S235JR', 'kg', 'chapa_laser', 1.5800, true, 'S235JR'),
+    ('MAT-CHAPA-LASER-S235-5MM', 'Chapa laser 5mm S235JR', 'kg', 'chapa_laser', 1.6900, true, 'S235JR'),
+    ('MAT-CHAPA-LASER-S355-6MM', 'Chapa laser 6mm S355JR', 'kg', 'chapa_laser', 1.9200, true, 'S355JR'),
+    ('MAT-CHAPA-LASER-S355-10MM', 'Chapa laser 10mm S355JR', 'kg', 'chapa_laser', 2.1500, true, 'S355JR'),
+    ('MAT-CHAPA-LASER-INOX304-3MM', 'Chapa laser inox 3mm AISI 304', 'kg', 'chapa_laser', 5.9000, true, 'AISI304'),
+    ('MAT-CHAPA-LASER-INOX304-5MM', 'Chapa laser inox 5mm AISI 304', 'kg', 'chapa_laser', 6.2500, true, 'AISI304'),
+    ('MAT-CHAPA-LASER-INOX304-8MM', 'Chapa laser inox 8mm AISI 304', 'kg', 'chapa_laser', 6.8500, true, 'AISI304'),
+    ('MAT-CHAPA-LASER-ALU5754-3MM', 'Chapa laser aluminio 3mm 5754', 'kg', 'chapa_laser', 4.2000, true, 'AL5754'),
+    ('MAT-CHAPA-LASER-ALU5754-5MM', 'Chapa laser aluminio 5mm 5754', 'kg', 'chapa_laser', 4.5500, true, 'AL5754'),
+    ('MAT-CHAPA-LASER-ALU5754-8MM', 'Chapa laser aluminio 8mm 5754', 'kg', 'chapa_laser', 4.9000, true, 'AL5754'),
+    ('MAT-PARAF-M8-88', 'Parafuso sextavado M8 classe 8.8 zincado', 'un', 'parafusaria', 0.0900, true, 'ACO 8.8'),
+    ('MAT-PARAF-M10-88', 'Parafuso sextavado M10 classe 8.8 zincado', 'un', 'parafusaria', 0.1600, true, 'ACO 8.8'),
+    ('MAT-PARAF-M12-88', 'Parafuso sextavado M12 classe 8.8 zincado', 'un', 'parafusaria', 0.2800, true, 'ACO 8.8'),
+    ('MAT-PORCA-M12-88', 'Porca sextavada M12 classe 8 zincada', 'un', 'parafusaria', 0.0800, true, 'ACO 8'),
+    ('MAT-ANILHA-M12', 'Anilha lisa M12 zincada', 'un', 'parafusaria', 0.0300, true, 'ACO'),
+    ('MAT-PARAF-INOX-M8-A2', 'Parafuso sextavado inox M8 A2', 'un', 'parafusaria', 0.2200, true, 'AISI304'),
+    ('MAT-REBITE-INOX-M6-A2', 'Rebite roscado inox M6 A2', 'un', 'parafusaria', 0.3500, true, 'AISI304'),
+    ('MAT-PECA-DOBRADICA-S235-80', 'Dobradica comercial aco 80mm', 'un', 'peca_comercio', 2.4000, true, 'S235JR'),
+    ('MAT-PECA-FECHO-S235', 'Fecho rapido aco zincado', 'un', 'peca_comercio', 7.8000, true, 'S235JR'),
+    ('MAT-PECA-PE-NIVELADOR-S235', 'Pe nivelador M12 aco zincado', 'un', 'peca_comercio', 3.6000, true, 'S235JR'),
+    ('MAT-PECA-SUPORTE-INOX304', 'Suporte comercial inox 304', 'un', 'peca_comercio', 5.2000, true, 'AISI304'),
+    ('MAT-PECA-PERFIL-ALU6060', 'Perfil comercial aluminio 6060', 'un', 'peca_comercio', 9.4000, true, 'AL6060'),
+    ('MAT-PECA-CHAPA-DOBRADA-ALU5754', 'Chapa dobrada comercial aluminio 5754', 'un', 'peca_comercio', 6.8000, true, 'AL5754');
 
 INSERT INTO public.operacao (codigo, nome, categoria, custo_hora_default, setup_hora_default, ativo)
 VALUES
-    ('OP-CORTE-LASER', 'Corte laser CNC', 'corte', 42.00, 0.50, true),
-    ('OP-CORTE-SERRA', 'Corte em serra de fita', 'corte', 29.00, 0.30, true),
-    ('OP-FURACAO', 'Furacao e escareacao', 'usinagem', 31.00, 0.25, true),
-    ('OP-QUINAGEM', 'Quinagem CNC', 'conformacao', 45.00, 0.60, true),
-    ('OP-CALANDRAGEM', 'Calandragem', 'conformacao', 48.00, 0.75, true),
-    ('OP-SOLD-MIG', 'Soldadura MIG/MAG', 'soldadura', 38.00, 0.50, true),
-    ('OP-SOLD-TIG', 'Soldadura TIG', 'soldadura', 46.00, 0.50, true),
-    ('OP-PINGAMENTO', 'Pingamento e acabamento de solda', 'acabamento', 34.00, 0.40, true),
-    ('OP-JATEAMENTO', 'Jateamento SA2.5', 'acabamento', 32.00, 0.35, true),
-    ('OP-PINTURA-LIQ', 'Pintura liquida PU', 'acabamento', 30.00, 0.45, true),
-    ('OP-MONTAGEM', 'Montagem em bancada', 'montagem', 28.00, 0.25, true),
-    ('OP-QA', 'Controlo dimensional e QA', 'qualidade', 26.00, 0.20, true);
+    ('OP-CORTE-LASER', 'Corte laser', 'corte', 42.00, 0.50, true),
+    ('OP-CORTE', 'Corte', 'corte', 32.00, 0.30, true),
+    ('OP-FURACAO', 'Furacao', 'furacao', 34.00, 0.25, true),
+    ('OP-MAQUINACAO', 'Maquinacao', 'maquinacao', 46.00, 0.60, true),
+    ('OP-CALANDRAGEM', 'Calandragem', 'calandragem', 48.00, 0.75, true),
+    ('OP-QUINAGEM', 'Quinagem', 'quinagem', 45.00, 0.55, true),
+    ('OP-SOLDADURA', 'Soldadura', 'soldadura', 39.00, 0.45, true),
+    ('OP-PINGAMENTO', 'Pingamento', 'pingamento', 34.00, 0.25, true),
+    ('OP-REBARBAGEM', 'Rebarbagem', 'acabamento', 31.00, 0.25, true),
+    ('OP-MONTAGEM', 'Montagem', 'montagem', 30.00, 0.30, true),
+    ('OP-QUALIDADE', 'Qualidade', 'qualidade', 28.00, 0.20, true),
+    ('OP-ACABAMENTO', 'Acabamento', 'acabamento', 33.00, 0.25, true),
+    ('OP-EXPEDICAO', 'Expedicao', 'expedicao', 24.00, 0.15, true);
 
 INSERT INTO public.servico (codigo, nome, unidade, preco_unitario_default, ativo)
 VALUES
-    ('SVC-GALV-HOT', 'Galvanizacao a quente', 'kg', 1.25, true),
-    ('SVC-ZINCAGEM', 'Zincagem eletrolitica', 'kg', 0.95, true),
-    ('SVC-TRANSPORTE', 'Transporte nacional', 'viag', 380.00, true),
-    ('SVC-GRUAS', 'Aluguer de grua 40T', 'dia', 920.00, true),
-    ('SVC-END', 'Ensaios nao destrutivos (LP/UT)', 'hora', 68.00, true),
-    ('SVC-CORTE-EXT', 'Corte plasma externo', 'hora', 74.00, true),
-    ('SVC-METALIZACAO', 'Metalizacao por arco', 'm2', 22.00, true),
-    ('SVC-PINT-PO', 'Pintura a po externa', 'm2', 14.50, true),
-    ('SVC-EMBALAGEM', 'Embalagem e acondicionamento', 'lote', 240.00, true),
-    ('SVC-CERT-1090', 'Certificacao EN1090', 'lote', 650.00, true);
+    ('SVC-GALV', 'Galvanizacao', 'kg', 1.20, true),
+    ('SVC-PINTURA-LIQUIDA', 'Pintura liquida', 'm2', 14.80, true),
+    ('SVC-LACAGEM', 'Lacagem', 'm2', 16.50, true),
+    ('SVC-ANODIZACAO', 'Anodizacao aluminio', 'm2', 18.00, true),
+    ('SVC-POLIMENTO', 'Polimento inox', 'm2', 22.00, true),
+    ('SVC-TRANSPORTE', 'Transporte', 'viag', 380.00, true),
+    ('SVC-GRUA', 'Grua', 'dia', 920.00, true),
+    ('SVC-ENSAIOS', 'Ensaios qualidade', 'hora', 68.00, true),
+    ('SVC-CERTIFICACAO', 'Certificacao', 'lote', 650.00, true),
+    ('SVC-EMBALAGEM', 'Embalagem', 'lote', 240.00, true),
+    ('SVC-MONTAGEM-EXT', 'Montagem externa', 'hora', 42.00, true);
 
 INSERT INTO public.projeto (
     referencia,
@@ -129,14 +154,14 @@ INSERT INTO public.projeto (
     id_cliente
 )
 SELECT
-    format('PRJ-2026-%s', lpad(gs::text, 3, '0')),
+    format('PRJ-2026-%s', lpad(gs::text, 5, '0')),
     CASE (gs % 6)
-        WHEN 0 THEN format('Pavilhao industrial modulo %s', gs)
-        WHEN 1 THEN format('Passadico metalico lote %s', gs)
-        WHEN 2 THEN format('Estrutura cobertura logistica %s', gs)
-        WHEN 3 THEN format('Mezanino industrial fase %s', gs)
-        WHEN 4 THEN format('Plataforma tecnica setor %s', gs)
-        ELSE format('Escadaria e guardas projeto %s', gs)
+        WHEN 0 THEN format('Pavilhao metalico %s', gs)
+        WHEN 1 THEN format('Passadico metalico %s', gs)
+        WHEN 2 THEN format('Cobertura metalica %s', gs)
+        WHEN 3 THEN format('Mezanino industrial %s', gs)
+        WHEN 4 THEN format('Plataforma tecnica %s', gs)
+        ELSE format('Escadaria metalica %s', gs)
     END,
     CASE (gs % 6)
         WHEN 0 THEN 'pavilhao'
@@ -147,47 +172,126 @@ SELECT
         ELSE 'escadaria'
     END,
     CASE
-        WHEN gs % 7 = 0 THEN 'em_execucao'
-        WHEN gs % 5 = 0 THEN 'planeado'
+        WHEN gs % 29 = 0 THEN 'cancelado'
+        WHEN gs % 7 = 0 THEN 'concluido'
+        WHEN gs % 5 = 0 THEN 'em_execucao'
+        WHEN gs % 4 = 0 THEN 'aprovado'
+        WHEN gs % 3 = 0 THEN 'planeado'
         ELSE 'em_analise'
     END,
-    (DATE '2026-01-01' + ((gs * 5) % 180)),
-    (DATE '2026-01-01' + ((gs * 5) % 180) + (45 + (gs % 70))),
-    round((800 + random() * 34200)::numeric, 2),
-    (25 + (random() * 420)::int),
+    -- data_inicio: distribuida por 3 anos (2024-2026) coerentemente com o estado.
+    -- Concluidos sao mais antigos (2024 - meio 2025), em_execucao em 2025-Q3 a meio 2026,
+    -- aprovados/planeados/em_analise mais recentes (2026).
+    CASE
+        WHEN gs % 29 = 0 THEN (DATE '2024-06-01' + ((gs * 7) % 730))   -- cancelado: pode ser de qualquer epoca
+        WHEN gs % 7 = 0 THEN (DATE '2024-01-01' + ((gs * 5) % 540))    -- concluido: 2024 a meio 2025
+        WHEN gs % 5 = 0 THEN (DATE '2025-06-01' + ((gs * 3) % 270))    -- em_execucao: 2025-Q3 a meio 2026
+        WHEN gs % 4 = 0 THEN (DATE '2025-12-01' + ((gs * 2) % 200))    -- aprovado: fim 2025 a meio 2026
+        WHEN gs % 3 = 0 THEN (DATE '2026-04-01' + ((gs * 4) % 200))    -- planeado: futuro proximo
+        ELSE (DATE '2026-06-01' + ((gs * 4) % 150))                    -- em_analise: mais recente
+    END,
+    CASE
+        WHEN gs % 29 = 0 THEN (DATE '2024-06-01' + ((gs * 7) % 730) + (25 + (gs % 45)))
+        WHEN gs % 7 = 0 THEN (DATE '2024-01-01' + ((gs * 5) % 540) + (35 + (gs % 55)))
+        WHEN gs % 5 = 0 THEN (DATE '2025-06-01' + ((gs * 3) % 270) + (55 + (gs % 70)))
+        WHEN gs % 4 = 0 THEN (DATE '2025-12-01' + ((gs * 2) % 200) + (45 + (gs % 65)))
+        WHEN gs % 3 = 0 THEN (DATE '2026-04-01' + ((gs * 4) % 200) + (45 + (gs % 70)))
+        ELSE (DATE '2026-06-01' + ((gs * 4) % 150) + (45 + (gs % 70)))
+    END,
+    round((
+        CASE
+            WHEN gs % 40 = 0 THEN 60000 + random() * 80000
+            WHEN gs % 25 = 0 THEN 35000 + random() * 55000
+            WHEN gs % 6 = 0 THEN 12000 + random() * 48000
+            WHEN gs % 6 = 2 THEN 6000 + random() * 30000
+            WHEN gs % 6 = 3 THEN 3500 + random() * 22000
+            WHEN gs % 6 = 4 THEN 2000 + random() * 16000
+            WHEN gs % 6 = 1 THEN 900 + random() * 9000
+            ELSE 700 + random() * 12000
+        END
+        * CASE
+            WHEN gs % 10 IN (1, 2) THEN 0.58
+            WHEN gs % 10 = 0 THEN 0.85
+            ELSE 1.00
+          END
+    )::numeric, 2),
+    CASE
+        WHEN gs % 40 = 0 THEN 800 + (random() * 1600)::int
+        WHEN gs % 25 = 0 THEN 500 + (random() * 900)::int
+        WHEN gs % 6 = 0 THEN 220 + (random() * 900)::int
+        WHEN gs % 6 = 2 THEN 120 + (random() * 650)::int
+        WHEN gs % 6 = 3 THEN 80 + (random() * 500)::int
+        WHEN gs % 6 = 4 THEN 45 + (random() * 300)::int
+        WHEN gs % 6 = 1 THEN 25 + (random() * 180)::int
+        ELSE 20 + (random() * 220)::int
+    END,
     CASE
         WHEN gs % 4 = 0 THEN 'alta'
         WHEN gs % 3 = 0 THEN 'media'
         ELSE 'baixa'
     END,
     CASE
-        WHEN gs % 5 = 0 THEN 'S355JR'
-        WHEN gs % 3 = 0 THEN 'AISI304'
-        ELSE 'S275JR'
+        WHEN gs % 10 = 0 THEN 'AISI304'
+        WHEN gs % 10 = 1 THEN 'AL6060'
+        WHEN gs % 10 = 2 THEN 'AL5754'
+        WHEN gs % 10 IN (3, 5, 7) THEN 'S235JR'
+        ELSE 'S355JR'
     END,
     CASE
-        WHEN gs % 4 = 0 THEN 'galvanizacao'
-        WHEN gs % 3 = 0 THEN 'pintura_pu'
-        ELSE 'jateamento_pintura'
+        WHEN gs % 10 = 0 THEN
+            CASE
+                WHEN gs % 20 = 0 THEN 'polimento'
+                ELSE 'sem_tratamento'
+            END
+        WHEN gs % 10 IN (1, 2) THEN
+            CASE
+                WHEN gs % 4 = 0 THEN 'pintura_liquida'
+                WHEN gs % 3 = 0 THEN 'lacagem'
+                ELSE 'anodizacao'
+            END
+        ELSE
+            CASE
+                WHEN gs % 4 = 0 THEN 'galvanizacao'
+                WHEN gs % 3 = 0 THEN 'pintura_liquida'
+                WHEN gs % 5 = 0 THEN 'lacagem'
+                ELSE 'sem_tratamento'
+            END
     END,
     CASE
-        WHEN gs % 2 = 0 THEN 'laser'
-        ELSE 'serra'
+        WHEN gs % 10 IN (1, 2) THEN
+            CASE
+                WHEN gs % 2 = 0 THEN 'laser_chapa'
+                ELSE 'laser_tubo'
+            END
+        WHEN gs % 10 = 0 THEN 'laser_chapa'
+        WHEN gs % 4 = 0 THEN 'corte'
+        ELSE 'laser_chapa'
     END,
-    (20 + (gs % 45)),
-    format('Projeto seedado automaticamente. Faixa estrutural realista 0.8k-35k kg. Item %s.', gs),
+    CASE
+        WHEN gs % 40 = 0 THEN 120 + (gs % 90)
+        WHEN gs % 25 = 0 THEN 90 + (gs % 75)
+        WHEN gs % 6 = 0 THEN 75 + (gs % 65)
+        WHEN gs % 6 = 2 THEN 55 + (gs % 55)
+        WHEN gs % 6 = 3 THEN 45 + (gs % 50)
+        WHEN gs % 6 = 4 THEN 35 + (gs % 45)
+        ELSE 20 + (gs % 40)
+    END,
+    format('Projeto seedado automaticamente com escala, material e tratamento coerentes. Item %s.', gs),
     CASE
         WHEN gs % 6 = 0 THEN 2
         WHEN gs % 5 = 0 THEN 4
         ELSE 1
     END,
-    ((gs - 1) % 35) + 1
-FROM generate_series(1, 170) AS gs;
+    ((gs - 1) % 250) + 1
+FROM generate_series(1, 6700) AS gs;
 
--- 170 projetos x 3 versoes = 510 orcamentos
+-- 6700 projetos x 3 versoes = 20100 orcamentos
 WITH versoes AS (
     SELECT
         p.id_projeto,
+        p.estado AS projeto_estado,
+        p.tipologia,
+        p.data_inicio,
         v.nr AS versao_num,
         format('v%s', v.nr) AS versao
     FROM public.projeto p
@@ -210,29 +314,89 @@ SELECT
         WHEN versao_num = 2 THEN 2
         ELSE 1
     END,
-    CURRENT_TIMESTAMP - ((170 - id_projeto) * INTERVAL '1 day') - (versao_num * INTERVAL '3 day'),
+    data_inicio::timestamp
+        - ((CASE versao_num WHEN 1 THEN 45 WHEN 2 THEN 25 ELSE 10 END) * INTERVAL '1 day')
+        - ((id_projeto % 12) * INTERVAL '1 day'),
     CASE
-        WHEN versao_num = 1 THEN 'aprovado'
-        WHEN versao_num = 2 THEN 'em_revisao'
+        WHEN projeto_estado = 'cancelado' AND versao_num = 1 THEN 'rejeitado'
+        WHEN projeto_estado = 'cancelado' THEN 'cancelado'
+        WHEN projeto_estado IN ('concluido', 'em_execucao') AND versao_num < 3 THEN 'rejeitado'
+        WHEN projeto_estado IN ('concluido', 'em_execucao') THEN 'aprovado'
+        WHEN projeto_estado IN ('aprovado', 'planeado') AND versao_num = 1 THEN 'rejeitado'
+        WHEN projeto_estado IN ('aprovado', 'planeado') AND versao_num = 2 THEN 'em_revisao'
+        WHEN projeto_estado IN ('aprovado', 'planeado') THEN 'aprovado'
+        WHEN projeto_estado = 'em_analise' AND versao_num = 1 THEN 'rejeitado'
+        WHEN projeto_estado = 'em_analise' AND versao_num = 2 THEN 'em_revisao'
         ELSE 'rascunho'
     END,
-    round((14 + random() * 22)::numeric, 2),
+    -- Margem comercial varia por tipologia: trabalhos mais tecnicos (mezanino,
+    -- plataforma) tipicamente tem margens maiores; trabalhos mais comoditizados
+    -- (pavilhao, escadaria) mais baixas. Reflecte praxis de mercado.
+    round((
+        CASE tipologia
+            WHEN 'mezanino'   THEN 18 + random() * 14   -- 18-32% (engenharia)
+            WHEN 'plataforma' THEN 16 + random() * 12   -- 16-28%
+            WHEN 'cobertura'  THEN 14 + random() * 11   -- 14-25%
+            WHEN 'passadico'  THEN 14 + random() * 10   -- 14-24%
+            WHEN 'escadaria'  THEN 12 + random() * 12   -- 12-24%
+            WHEN 'pavilhao'   THEN 11 + random() * 9    -- 11-20% (mais comoditizado)
+            ELSE 13 + random() * 12
+        END
+    )::numeric, 2),
     format('Orcamento %s do projeto %s - estrutura metalica.', versao, id_projeto)
 FROM versoes
 ORDER BY id_projeto, versao_num;
 
 -- 8 linhas de material por orcamento
-WITH mat_count AS (
-    SELECT count(*)::int AS total FROM public.material
-),
-mat_picks AS (
+WITH mat_picks AS (
     SELECT
         o.id_orcamento,
         gs.idx,
-        ((o.id_orcamento * 11 + gs.idx * 7) % mc.total + 1)::int AS id_material
+        mat.id_material
     FROM public.orcamento o
-    CROSS JOIN mat_count mc
+    JOIN public.projeto pr ON pr.id_projeto = o.id_projeto
     CROSS JOIN generate_series(1, 8) AS gs(idx)
+    JOIN LATERAL (
+        SELECT ranked.id_material
+        FROM (
+            SELECT
+                m.id_material,
+                row_number() OVER (
+                    ORDER BY ((m.id_material * 17 + o.id_orcamento * 11 + gs.idx * 7) % 1009), m.id_material
+                ) AS rn,
+                count(*) OVER () AS total
+            FROM public.material m
+            WHERE m.ativo
+              AND (
+                  (
+                      m.tipo IN ('tubo', 'chapa_laser')
+                      AND (
+                          (pr.material_principal IN ('S235JR', 'S355JR') AND m.qualidade_material = pr.material_principal)
+                          OR (pr.material_principal = 'AISI304' AND m.qualidade_material = 'AISI304')
+                          OR (pr.material_principal = 'AL6060' AND m.qualidade_material IN ('AL6060', 'AL5754'))
+                          OR (pr.material_principal = 'AL5754' AND m.qualidade_material IN ('AL5754', 'AL6060'))
+                      )
+                  )
+                  OR (
+                      m.tipo = 'parafusaria'
+                      AND (
+                          (pr.material_principal IN ('S235JR', 'S355JR') AND m.qualidade_material IN ('ACO', 'ACO 8', 'ACO 8.8'))
+                          OR (pr.material_principal = 'AISI304' AND m.qualidade_material = 'AISI304')
+                          OR (pr.material_principal IN ('AL6060', 'AL5754') AND m.qualidade_material = 'AISI304')
+                      )
+                  )
+                  OR (
+                      m.tipo = 'peca_comercio'
+                      AND (
+                          (pr.material_principal IN ('S235JR', 'S355JR') AND m.qualidade_material IN ('S235JR', 'S355JR'))
+                          OR (pr.material_principal = 'AISI304' AND m.qualidade_material = 'AISI304')
+                          OR (pr.material_principal IN ('AL6060', 'AL5754') AND m.qualidade_material IN ('AL6060', 'AL5754'))
+                      )
+                  )
+              )
+        ) ranked
+        WHERE ranked.rn = ((gs.idx - 1) % ranked.total) + 1
+    ) mat ON true
 ),
 mat_base AS (
     SELECT
@@ -250,18 +414,20 @@ mat_base AS (
             ELSE round((10 + random() * 140)::numeric, 2)
         END AS quantidade,
         CASE m.codigo
-            WHEN 'MAT-TUBO-20X20X2' THEN 1.16
-            WHEN 'MAT-TUBO-30X30X2' THEN 1.79
-            WHEN 'MAT-TUBO-40X40X3' THEN 3.55
-            WHEN 'MAT-TUBO-60X40X3' THEN 4.33
-            WHEN 'MAT-PERFIL-UPN120' THEN 13.40
-            WHEN 'MAT-PERFIL-IPE160' THEN 15.80
-            WHEN 'MAT-CANT-50X5' THEN 3.77
-            WHEN 'MAT-PLAT-80X8' THEN 5.02
-            WHEN 'MAT-HEA200' THEN 42.30
-            WHEN 'MAT-HEB240' THEN 93.00
-            WHEN 'MAT-TUBO-INOX-30X2' THEN 1.41
-            ELSE 4.50
+            WHEN 'MAT-TUBO-S235-30X30X2' THEN 1.76
+            WHEN 'MAT-TUBO-S235-40X40X2' THEN 2.39
+            WHEN 'MAT-TUBO-S235-60X40X3' THEN 4.43
+            WHEN 'MAT-TUBO-S355-50X50X3' THEN 4.43
+            WHEN 'MAT-TUBO-S355-80X40X3' THEN 5.20
+            WHEN 'MAT-TUBO-S355-100X50X4' THEN 8.78
+            WHEN 'MAT-TUBO-S355-RD48X3' THEN 3.56
+            WHEN 'MAT-TUBO-INOX304-30X30X2' THEN 1.77
+            WHEN 'MAT-TUBO-INOX304-50X30X2' THEN 2.37
+            WHEN 'MAT-TUBO-INOX304-80X40X3' THEN 5.34
+            WHEN 'MAT-TUBO-ALU6060-30X30X2' THEN 0.60
+            WHEN 'MAT-TUBO-ALU6060-50X30X2' THEN 0.80
+            WHEN 'MAT-TUBO-ALU6060-80X40X3' THEN 1.85
+            ELSE 1.00
         END AS kg_por_m,
         round((random() * 5.5)::numeric, 2) AS desperdicio_percent
     FROM mat_picks p
@@ -323,10 +489,16 @@ op_dados AS (
         p.id_orcamento,
         op.id_operacao,
         CASE
-            WHEN op.categoria = 'soldadura' THEN round((18 + random() * 102)::numeric, 2)
-            WHEN op.categoria = 'corte' THEN round((10 + random() * 55)::numeric, 2)
-            WHEN op.categoria = 'acabamento' THEN round((8 + random() * 47)::numeric, 2)
-            ELSE round((6 + random() * 44)::numeric, 2)
+            WHEN op.categoria = 'soldadura' THEN round((14 + random() * 90)::numeric, 2)
+            WHEN op.categoria = 'montagem' THEN round((12 + random() * 70)::numeric, 2)
+            WHEN op.categoria = 'corte' THEN round((6 + random() * 45)::numeric, 2)
+            WHEN op.categoria IN ('furacao', 'maquinacao') THEN round((8 + random() * 55)::numeric, 2)
+            WHEN op.categoria IN ('calandragem', 'quinagem') THEN round((6 + random() * 45)::numeric, 2)
+            WHEN op.categoria = 'pingamento' THEN round((4 + random() * 32)::numeric, 2)
+            WHEN op.categoria = 'acabamento' THEN round((6 + random() * 38)::numeric, 2)
+            WHEN op.categoria = 'qualidade' THEN round((3 + random() * 22)::numeric, 2)
+            WHEN op.categoria = 'expedicao' THEN round((2 + random() * 16)::numeric, 2)
+            ELSE round((5 + random() * 35)::numeric, 2)
         END AS horas,
         round((op.setup_hora_default + random() * 1.4)::numeric, 2) AS tempo_setup_h,
         round((op.custo_hora_default * (0.95 + random() * 0.20))::numeric, 2) AS custo_hora_snapshot,
@@ -355,17 +527,45 @@ FROM op_dados
 ORDER BY id_orcamento, id_operacao;
 
 -- 2 linhas de servico por orcamento
-WITH svc_count AS (
-    SELECT count(*)::int AS total FROM public.servico
-),
-svc_picks AS (
+WITH svc_picks AS (
     SELECT
         o.id_orcamento,
         gs.idx,
-        ((o.id_orcamento * 17 + gs.idx * 3) % sc.total + 1)::int AS id_servico
+        svc.id_servico
     FROM public.orcamento o
-    CROSS JOIN svc_count sc
+    JOIN public.projeto pr ON pr.id_projeto = o.id_projeto
     CROSS JOIN generate_series(1, 2) AS gs(idx)
+    JOIN LATERAL (
+        SELECT ranked.id_servico
+        FROM (
+            SELECT
+                s.id_servico,
+                row_number() OVER (
+                    ORDER BY ((s.id_servico * 19 + o.id_orcamento * 17 + gs.idx * 3) % 997), s.id_servico
+                ) AS rn,
+                count(*) OVER () AS total
+            FROM public.servico s
+            WHERE s.ativo
+              AND (
+                  (
+                      gs.idx = 1
+                      AND (
+                          (pr.tratamento_superficie = 'galvanizacao' AND s.codigo = 'SVC-GALV')
+                          OR (pr.tratamento_superficie = 'pintura_liquida' AND s.codigo = 'SVC-PINTURA-LIQUIDA')
+                          OR (pr.tratamento_superficie = 'lacagem' AND s.codigo = 'SVC-LACAGEM')
+                          OR (pr.tratamento_superficie = 'anodizacao' AND s.codigo = 'SVC-ANODIZACAO')
+                          OR (pr.tratamento_superficie = 'polimento' AND s.codigo = 'SVC-POLIMENTO')
+                          OR (pr.tratamento_superficie = 'sem_tratamento' AND s.codigo IN ('SVC-TRANSPORTE', 'SVC-ENSAIOS', 'SVC-CERTIFICACAO', 'SVC-EMBALAGEM', 'SVC-MONTAGEM-EXT'))
+                      )
+                  )
+                  OR (
+                      gs.idx = 2
+                      AND s.codigo IN ('SVC-TRANSPORTE', 'SVC-ENSAIOS', 'SVC-CERTIFICACAO', 'SVC-EMBALAGEM', 'SVC-MONTAGEM-EXT')
+                  )
+              )
+        ) ranked
+        WHERE ranked.rn = ((gs.idx - 1) % ranked.total) + 1
+    ) svc ON true
 ),
 svc_dados AS (
     SELECT
@@ -409,8 +609,8 @@ ORDER BY id_orcamento, id_servico;
 -- Isto da ao ML uma relacao causal forte para aprender (peso, complexidade,
 -- material e tratamento). Valores escolhidos para reproduzir ordens de
 -- grandeza tipicas em metalomecanica:
---   * mat_eur_per_kg: 1.55 (S275JR) ate 5.80 (AISI304)
---   * trat_eur_per_kg: 0.42 (jateamento) ate 0.85 (galvanizacao)
+--   * mat_eur_per_kg: 1.60 (S235JR) ate 5.80 (AISI304)
+--   * trat_eur_per_kg: 0.10 (sem tratamento) ate 0.95 (polimento)
 --   * compl_factor: 1.00 a 1.90 (afeta horas, logo custo de operacao)
 --   * tipo_factor: 0.85 a 1.05 (afeta materiais conforme tipologia)
 -- ===========================================================================
@@ -422,8 +622,11 @@ SELECT
         round((p.peso_total_kg
             * CASE p.material_principal
                 WHEN 'AISI304' THEN 5.80
-                WHEN 'S355JR'  THEN 1.85
-                ELSE                1.55
+                WHEN 'AL5754'  THEN 4.40
+                WHEN 'AL6060'  THEN 4.10
+                WHEN 'S355JR'  THEN 1.90
+                WHEN 'S235JR'  THEN 1.60
+                ELSE                1.80
               END
             * CASE p.tipologia
                 WHEN 'cobertura'  THEN 1.05
@@ -447,8 +650,10 @@ SELECT
                 ELSE              1.00
               END
             * CASE p.processo_corte
-                WHEN 'laser' THEN 1.10
-                ELSE              1.00
+                WHEN 'laser_chapa' THEN 1.08
+                WHEN 'laser_tubo'  THEN 1.05
+                WHEN 'corte'       THEN 1.00
+                ELSE                    1.00
               END
             * (1.0 + (p.numero_pecas::numeric * 0.0008))  -- mais pecas = mais montagem
             * (0.90 + random() * 0.20)
@@ -458,10 +663,13 @@ SELECT
     GREATEST(200::numeric,
         round((p.peso_total_kg
             * CASE p.tratamento_superficie
-                WHEN 'galvanizacao'      THEN 0.85
-                WHEN 'pintura_pu'        THEN 0.55
-                WHEN 'jateamento_pintura' THEN 0.42
-                ELSE                          0.42
+                WHEN 'galvanizacao'   THEN 0.80
+                WHEN 'pintura_liquida' THEN 0.62
+                WHEN 'lacagem'        THEN 0.55
+                WHEN 'anodizacao'     THEN 0.70
+                WHEN 'polimento'      THEN 0.95
+                WHEN 'sem_tratamento' THEN 0.10
+                ELSE                       0.20
               END
             * (0.90 + random() * 0.20)
         )::numeric, 2)
@@ -567,7 +775,12 @@ SET
 -- contrario o ML treina sobre uma variavel circular (peso definido a partir
 -- do que ja foi gerado para o orcamento), perdendo o sinal causal.
 
--- Realizados de material
+-- Realizados de material.
+-- O f_qtd e modulado por um shock_factor por projeto que simula imprevistos:
+--   * ~2.4% derrapagem grande (40-90% acima do orcado)
+--   * ~1.9% folga grande (15-30% abaixo do orcado)
+--   * ~5.9% derrapagem media (10-22% acima)
+--   * ~89.8% normal (variacao tipica de execucao)
 WITH rm_base AS (
     SELECT
         d.id_linha_material,
@@ -575,9 +788,19 @@ WITH rm_base AS (
         d.quantidade,
         d.peso_kg,
         d.preco_unitario_snapshot,
-        (0.95 + random() * 0.16) AS f_qtd,
+        (0.95 + random() * 0.16) *
+            CASE
+                WHEN p.id_projeto % 41 = 0 THEN 1.40 + random() * 0.50
+                WHEN p.id_projeto % 53 = 0 THEN 0.70 + random() * 0.15
+                WHEN p.id_projeto % 17 = 0 THEN 1.10 + random() * 0.12
+                ELSE 1.0
+            END AS f_qtd,
         (0.97 + random() * 0.22) AS f_preco
     FROM public.detalhe_material_orcamento d
+    JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
+    JOIN public.projeto p ON p.id_projeto = o.id_projeto
+    WHERE o.estado = 'aprovado'
+      AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_material (
     id_linha_material,
@@ -602,7 +825,7 @@ SELECT
 FROM rm_base r
 JOIN public.orcamento o ON o.id_orcamento = r.id_orcamento;
 
--- Realizados de operacao
+-- Realizados de operacao (com mesmo shock_factor por projeto que materiais)
 WITH ro_base AS (
     SELECT
         d.id_linha_operacao,
@@ -610,10 +833,20 @@ WITH ro_base AS (
         d.horas,
         d.tempo_setup_h,
         d.custo_hora_snapshot,
-        (0.90 + random() * 0.25) AS f_horas,
+        (0.90 + random() * 0.25) *
+            CASE
+                WHEN p.id_projeto % 41 = 0 THEN 1.40 + random() * 0.50
+                WHEN p.id_projeto % 53 = 0 THEN 0.70 + random() * 0.15
+                WHEN p.id_projeto % 17 = 0 THEN 1.10 + random() * 0.12
+                ELSE 1.0
+            END AS f_horas,
         (0.90 + random() * 0.30) AS f_setup,
         (0.95 + random() * 0.20) AS f_custo
     FROM public.detalhe_operacao_orcamento d
+    JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
+    JOIN public.projeto p ON p.id_projeto = o.id_projeto
+    WHERE o.estado = 'aprovado'
+      AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_operacao (
     id_linha_operacao,
@@ -631,20 +864,30 @@ SELECT
     round((r.tempo_setup_h * r.f_setup)::numeric, 2),
     round((r.custo_hora_snapshot * r.f_custo)::numeric, 2),
     round((((r.horas * r.f_horas) + (r.tempo_setup_h * r.f_setup)) * (r.custo_hora_snapshot * r.f_custo))::numeric, 2),
-    'Execucao real de operacao (soldadura/pingamento/corte).'
+    'Execucao real de operacao.'
 FROM ro_base r
 JOIN public.orcamento o ON o.id_orcamento = r.id_orcamento;
 
--- Realizados de servico
+-- Realizados de servico (com mesmo shock_factor por projeto)
 WITH rs_base AS (
     SELECT
         d.id_linha_servico,
         d.id_orcamento,
         d.quantidade,
         d.preco_unitario_snapshot,
-        (0.90 + random() * 0.30) AS f_qtd,
+        (0.90 + random() * 0.30) *
+            CASE
+                WHEN p.id_projeto % 41 = 0 THEN 1.40 + random() * 0.50
+                WHEN p.id_projeto % 53 = 0 THEN 0.70 + random() * 0.15
+                WHEN p.id_projeto % 17 = 0 THEN 1.10 + random() * 0.12
+                ELSE 1.0
+            END AS f_qtd,
         (0.95 + random() * 0.22) AS f_preco
     FROM public.detalhe_servico_orcamento d
+    JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
+    JOIN public.projeto p ON p.id_projeto = o.id_projeto
+    WHERE o.estado = 'aprovado'
+      AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_servico (
     id_linha_servico,
@@ -688,7 +931,8 @@ SELECT
     'Previsao automatica para analise de desvio.'
 FROM public.orcamento o
 JOIN public.projeto p ON p.id_projeto = o.id_projeto
-WHERE random() < 0.80;
+WHERE o.estado <> 'cancelado'
+  AND random() < 0.80;
 
 -- Validacoes de integridade pedidas
 DO $$
@@ -698,7 +942,17 @@ DECLARE
     v_orc_5k integer;
     v_orc_20k integer;
     v_orc_50k integer;
-    v_orc_70k integer;
+    v_orc_100k integer;
+    v_orc_250k integer;
+    v_orc_cancelado_fora_projeto integer;
+    v_projetos_ativos_sem_aprovado integer;
+    v_projetos_analise_com_aprovado integer;
+    v_orc_aco integer;
+    v_orc_aluminio integer;
+    v_orc_inox integer;
+    v_pct_aco numeric;
+    v_pct_aluminio numeric;
+    v_pct_inox numeric;
 BEGIN
     SELECT count(*) INTO v_total_orc FROM public.orcamento;
 
@@ -706,8 +960,9 @@ BEGIN
         count(*) FILTER (WHERE custo_total_orcado BETWEEN 4500 AND 6500),
         count(*) FILTER (WHERE custo_total_orcado BETWEEN 17000 AND 23000),
         count(*) FILTER (WHERE custo_total_orcado BETWEEN 43000 AND 57000),
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 60000 AND 78000)
-    INTO v_orc_5k, v_orc_20k, v_orc_50k, v_orc_70k
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 90000 AND 120000),
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 200000 AND 320000)
+    INTO v_orc_5k, v_orc_20k, v_orc_50k, v_orc_100k, v_orc_250k
     FROM public.orcamento;
 
     SELECT min(total_linhas)
@@ -734,18 +989,79 @@ BEGIN
         ) s ON s.id_orcamento = o.id_orcamento
     ) t;
 
-    IF v_total_orc < 500 THEN
-        RAISE EXCEPTION 'Seed invalida: total orcamentos = % (esperado >= 500)', v_total_orc;
+    SELECT count(*)
+    INTO v_orc_cancelado_fora_projeto
+    FROM public.orcamento o
+    JOIN public.projeto p ON p.id_projeto = o.id_projeto
+    WHERE o.estado = 'cancelado'
+      AND p.estado <> 'cancelado';
+
+    SELECT count(*)
+    INTO v_projetos_ativos_sem_aprovado
+    FROM public.projeto p
+    WHERE p.estado IN ('planeado', 'aprovado', 'em_execucao', 'concluido')
+      AND NOT EXISTS (
+          SELECT 1
+          FROM public.orcamento o
+          WHERE o.id_projeto = p.id_projeto
+            AND o.estado = 'aprovado'
+      );
+
+    SELECT count(*)
+    INTO v_projetos_analise_com_aprovado
+    FROM public.projeto p
+    WHERE p.estado = 'em_analise'
+      AND EXISTS (
+          SELECT 1
+          FROM public.orcamento o
+          WHERE o.id_projeto = p.id_projeto
+            AND o.estado = 'aprovado'
+      );
+
+    SELECT
+        count(*) FILTER (WHERE p.material_principal IN ('S235JR', 'S355JR')),
+        count(*) FILTER (WHERE p.material_principal IN ('AL6060', 'AL5754')),
+        count(*) FILTER (WHERE p.material_principal = 'AISI304')
+    INTO v_orc_aco, v_orc_aluminio, v_orc_inox
+    FROM public.orcamento o
+    JOIN public.projeto p ON p.id_projeto = o.id_projeto;
+
+    v_pct_aco := round((v_orc_aco::numeric / NULLIF(v_total_orc, 0)) * 100, 2);
+    v_pct_aluminio := round((v_orc_aluminio::numeric / NULLIF(v_total_orc, 0)) * 100, 2);
+    v_pct_inox := round((v_orc_inox::numeric / NULLIF(v_total_orc, 0)) * 100, 2);
+
+    IF v_total_orc < 20000 THEN
+        RAISE EXCEPTION 'Seed invalida: total orcamentos = % (esperado >= 20000)', v_total_orc;
     END IF;
 
     IF v_min_linhas < 15 THEN
         RAISE EXCEPTION 'Seed invalida: minimo linhas por orcamento = % (esperado >= 15)', v_min_linhas;
     END IF;
 
-    IF v_orc_5k < 40 OR v_orc_20k < 40 OR v_orc_50k < 40 OR v_orc_70k < 40 THEN
+    IF v_orc_cancelado_fora_projeto > 0 THEN
+        RAISE EXCEPTION 'Seed invalida: existem % orcamentos cancelados fora de projetos cancelados', v_orc_cancelado_fora_projeto;
+    END IF;
+
+    IF v_projetos_ativos_sem_aprovado > 0 THEN
+        RAISE EXCEPTION 'Seed invalida: existem % projetos ativos sem orcamento aprovado', v_projetos_ativos_sem_aprovado;
+    END IF;
+
+    IF v_projetos_analise_com_aprovado > 0 THEN
+        RAISE EXCEPTION 'Seed invalida: existem % projetos em analise com orcamento aprovado', v_projetos_analise_com_aprovado;
+    END IF;
+
+    IF v_pct_aco NOT BETWEEN 69 AND 71
+       OR v_pct_aluminio NOT BETWEEN 19 AND 21
+       OR v_pct_inox NOT BETWEEN 9 AND 11 THEN
+        RAISE EXCEPTION
+            'Seed invalida: distribuicao material fora do alvo. aco=% aluminio=% inox=%',
+            v_pct_aco, v_pct_aluminio, v_pct_inox;
+    END IF;
+
+    IF v_orc_5k < 40 OR v_orc_20k < 40 OR v_orc_50k < 40 OR v_orc_100k < 40 OR v_orc_250k < 40 THEN
         RAISE NOTICE
-            'Distribuicao abaixo do alvo (minimo 40 por faixa): 5k=% 20k=% 50k=% 70k=%',
-            v_orc_5k, v_orc_20k, v_orc_50k, v_orc_70k;
+            'Distribuicao abaixo do alvo (minimo 40 por faixa): 5k=% 20k=% 50k=% 100k=% 250k=%',
+            v_orc_5k, v_orc_20k, v_orc_50k, v_orc_100k, v_orc_250k;
     END IF;
 END $$;
 
@@ -784,11 +1100,46 @@ FROM (
 ) t;
 
 SELECT
+    p.estado AS estado_projeto,
+    o.estado AS estado_orcamento,
+    count(*) AS total_orcamentos
+FROM public.orcamento o
+JOIN public.projeto p ON p.id_projeto = o.id_projeto
+GROUP BY p.estado, o.estado
+ORDER BY p.estado, o.estado;
+
+SELECT
+    CASE
+        WHEN p.material_principal IN ('S235JR', 'S355JR') THEN 'aco'
+        WHEN p.material_principal IN ('AL6060', 'AL5754') THEN 'aluminio'
+        WHEN p.material_principal = 'AISI304' THEN 'inox'
+        ELSE 'outro'
+    END AS familia_material,
+    p.material_principal,
+    count(*) AS total_orcamentos,
+    round((count(*)::numeric / sum(count(*)) OVER ()) * 100, 2) AS percentagem
+FROM public.orcamento o
+JOIN public.projeto p ON p.id_projeto = o.id_projeto
+GROUP BY 1, p.material_principal
+ORDER BY 1, p.material_principal;
+
+SELECT
+    p.tratamento_superficie,
+    count(*) AS total_orcamentos
+FROM public.orcamento o
+JOIN public.projeto p ON p.id_projeto = o.id_projeto
+GROUP BY p.tratamento_superficie
+ORDER BY p.tratamento_superficie;
+
+SELECT
     count(*) FILTER (WHERE custo_total_orcado BETWEEN 4500 AND 6500) AS orcamentos_faixa_5k,
     count(*) FILTER (WHERE custo_total_orcado BETWEEN 17000 AND 23000) AS orcamentos_faixa_20k,
     count(*) FILTER (WHERE custo_total_orcado BETWEEN 43000 AND 57000) AS orcamentos_faixa_50k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 60000 AND 78000) AS orcamentos_faixa_70k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 5000 AND 75000) AS orcamentos_entre_5k_75k
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 90000 AND 120000) AS orcamentos_faixa_100k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 200000 AND 320000) AS orcamentos_faixa_250k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 5000 AND 75000) AS orcamentos_entre_5k_75k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 75000 AND 200000) AS orcamentos_entre_75k_200k,
+    count(*) FILTER (WHERE custo_total_orcado > 200000) AS orcamentos_acima_200k
 FROM public.orcamento;
 
 -- Diagnostico de realismo por unidade de material

@@ -2,10 +2,10 @@
   "dataset_type": "orcamento_operacoes",
   "dataset_source": "orcamento",
   "target": "real_operacoes",
-  "trained_at": "2026-05-01T19:30:16.853858+00:00",
-  "rows_total": 510,
-  "rows_train": 382,
-  "rows_test": 128,
+  "trained_at": "2026-05-03T16:42:35.241042+00:00",
+  "rows_total": 2033,
+  "rows_train": 1524,
+  "rows_test": 509,
   "evaluation_mode": "holdout",
   "features_used": [
     "tipologia",
@@ -15,30 +15,20 @@
     "material_principal",
     "tratamento_superficie",
     "processo_corte",
-    "lead_time",
-    "peso_por_peca_kg",
-    "lead_time_por_tonelada"
+    "lead_time"
   ],
   "feature_ranges": {
     "peso_total_kg": {
-      "min": 948.4,
-      "max": 34706.57
+      "min": 484.79,
+      "max": 117832.06
     },
     "numero_pecas": {
-      "min": 28.0,
-      "max": 444.0
+      "min": 20.0,
+      "max": 2397.0
     },
     "lead_time": {
-      "min": 20.0,
-      "max": 64.0
-    },
-    "peso_por_peca_kg": {
-      "min": 2.74408,
-      "max": 1109.6560714285715
-    },
-    "lead_time_por_tonelada": {
-      "min": 0.6120291710589475,
-      "max": 51.66596372838465
+      "min": 21.0,
+      "max": 200.0
     }
   },
   "categorical_values": {
@@ -57,39 +47,45 @@
     ],
     "material_principal": [
       "AISI304",
-      "S275JR",
+      "AL5754",
+      "AL6060",
+      "S235JR",
       "S355JR"
     ],
     "tratamento_superficie": [
+      "anodizacao",
       "galvanizacao",
-      "jateamento_pintura",
-      "pintura_pu"
+      "lacagem",
+      "pintura_liquida",
+      "polimento",
+      "sem_tratamento"
     ],
     "processo_corte": [
-      "laser",
-      "serra"
+      "corte",
+      "laser_chapa",
+      "laser_tubo"
     ]
   },
   "dropped_columns": [
-    "real_servicos",
+    "custo_total_servicos",
     "real_operacoes",
     "custo_total_materiais",
-    "custo_total_servicos",
+    "real_servicos",
     "custo_total_operacoes",
     "real_materiais"
   ],
-  "mae": 446.7455413864083,
-  "rmse": 624.2447647234687,
-  "r2": 0.9763294073840435,
-  "baseline_mae": 3450.08765625,
-  "baseline_rmse": 4326.501995487919,
-  "baseline_r2": -0.13703315921475734,
+  "mae": 1335.4993395383083,
+  "rmse": 3133.833746640239,
+  "r2": 0.9756280190186745,
+  "baseline_mae": 10686.462632612966,
+  "baseline_rmse": 21685.300725597946,
+  "baseline_r2": -0.16699722428002772,
   "model_beats_baseline": true,
   "cv_folds": 5,
-  "cv_mae_mean": 422.10701345286617,
-  "cv_mae_std": 41.809040918749865,
-  "cv_r2_mean": 0.9763085272680474,
-  "cv_r2_std": 0.0043979072961145395,
+  "cv_mae_mean": 1405.8492922615008,
+  "cv_mae_std": 163.17923470806664,
+  "cv_r2_mean": 0.9642752659469819,
+  "cv_r2_std": 0.012872558369832077,
   "quality_status": "good",
   "params": {
     "n_estimators": 400,

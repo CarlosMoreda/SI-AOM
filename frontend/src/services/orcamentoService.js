@@ -1,7 +1,5 @@
 import { apiRequest } from './apiClient.js'
 
-// ── Orcamentos ───────────────────────────────────────────────────────────────
-
 export async function listOrcamentos(token) {
   return apiRequest('/orcamentos/', { token })
 }
@@ -17,8 +15,6 @@ export async function updateOrcamento(token, id, payload) {
 export async function deleteOrcamento(token, id) {
   return apiRequest(`/orcamentos/${id}`, { method: 'DELETE', token })
 }
-
-// ── Linhas Materiais ─────────────────────────────────────────────────────────
 
 export async function listOrcamentoMateriais(token, idOrcamento) {
   return apiRequest(`/orcamentos/${idOrcamento}/materiais`, { token })
@@ -36,8 +32,6 @@ export async function deleteOrcamentoMaterial(token, idLinha) {
   return apiRequest(`/orcamentos/materiais/${idLinha}`, { method: 'DELETE', token })
 }
 
-// ── Linhas Operacoes ─────────────────────────────────────────────────────────
-
 export async function listOrcamentoOperacoes(token, idOrcamento) {
   return apiRequest(`/orcamentos/${idOrcamento}/operacoes`, { token })
 }
@@ -53,8 +47,6 @@ export async function updateOrcamentoOperacao(token, idLinha, payload) {
 export async function deleteOrcamentoOperacao(token, idLinha) {
   return apiRequest(`/orcamentos/operacoes/${idLinha}`, { method: 'DELETE', token })
 }
-
-// ── Linhas Servicos ──────────────────────────────────────────────────────────
 
 export async function listOrcamentoServicos(token, idOrcamento) {
   return apiRequest(`/orcamentos/${idOrcamento}/servicos`, { token })

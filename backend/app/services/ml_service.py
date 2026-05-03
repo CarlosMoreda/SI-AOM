@@ -27,7 +27,6 @@ ORCAMENTO_REQUIRED_FEATURES: tuple[str, ...] = (
     "numero_pecas",
     "material_principal",
     "tratamento_superficie",
-    "processo_corte",
     "lead_time",
 )
 ORCAMENTO_REQUIRED_LABELS: dict[str, str] = {
@@ -37,7 +36,6 @@ ORCAMENTO_REQUIRED_LABELS: dict[str, str] = {
     "numero_pecas": "numero_pecas",
     "material_principal": "material_principal",
     "tratamento_superficie": "tratamento_superficie",
-    "processo_corte": "processo_corte",
     "lead_time": "lead_time",
 }
 ORCAMENTO_OPTION_FIELDS: dict[str, str] = {
@@ -45,8 +43,12 @@ ORCAMENTO_OPTION_FIELDS: dict[str, str] = {
     "complexidade": "complexidades",
     "material_principal": "materiais",
     "tratamento_superficie": "tratamentos",
-    "processo_corte": "processos_corte",
 }
+ORCAMENTO_NUMERIC_OPTION_FIELDS: tuple[str, ...] = (
+    "peso_total_kg",
+    "numero_pecas",
+    "lead_time",
+)
 
 
 def _resolve_backend_path(path: str) -> Path:
@@ -99,15 +101,6 @@ def _align_features(model, features_used: list[str], dataset_df: pd.DataFrame) -
         X[col] = X[col].where(X[col].notna(), None)
 
     return X
-
-
-def _to_float(value: Any) -> float | None:
-    if value is None or pd.isna(value):
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _quality_rank(quality_status: str) -> int:
@@ -266,22 +259,7 @@ def _validate_orcamento_parametros(parametros: dict[str, Any]) -> None:
 
 
 def _augment_orcamento_features(parametros: dict[str, Any]) -> dict[str, Any]:
-    enriched = dict(parametros)
-    peso_total = _to_float(enriched.get("peso_total_kg"))
-    numero_pecas = _to_float(enriched.get("numero_pecas"))
-    lead_time = _to_float(enriched.get("lead_time"))
-
-    if peso_total is not None and numero_pecas and numero_pecas > 0:
-        enriched["peso_por_peca_kg"] = peso_total / numero_pecas
-    else:
-        enriched["peso_por_peca_kg"] = None
-
-    if peso_total is not None and peso_total > 0 and lead_time is not None:
-        enriched["lead_time_por_tonelada"] = lead_time / (peso_total / 1000.0)
-    else:
-        enriched["lead_time_por_tonelada"] = None
-
-    return enriched
+    return dict(parametros)
 
 
 def _feature_ranges_from_dataset(
@@ -366,8 +344,8 @@ def _empty_orcamento_options() -> dict[str, Any]:
         "complexidades": [],
         "materiais": [],
         "tratamentos": [],
-        "processos_corte": [],
         "feature_ranges": {},
+        "feature_defaults": {},
         "features_usadas": [],
         "dataset_linhas": None,
         "source": "indisponivel",
@@ -383,32 +361,50 @@ def _options_from_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
             if isinstance(values, list):
                 options[option_key] = sorted({str(v) for v in values if str(v).strip()})
 
-    options["feature_ranges"] = _feature_ranges_from_metrics(metrics)
+    metric_ranges = _feature_ranges_from_metrics(metrics)
+    options["feature_ranges"] = {
+        feature: metric_ranges[feature]
+        for feature in ORCAMENTO_NUMERIC_OPTION_FIELDS
+        if feature in metric_ranges
+    }
     features_used = metrics.get("features_used")
     if isinstance(features_used, list):
-        options["features_usadas"] = [str(feature) for feature in features_used]
+        allowed_features = set(ORCAMENTO_REQUIRED_FEATURES)
+        options["features_usadas"] = [
+            str(feature)
+            for feature in features_used
+            if str(feature) in allowed_features
+        ]
     options["dataset_linhas"] = metrics.get("rows_total")
     options["source"] = "modelo"
     return options
 
 
+def _dataset_mode(series: pd.Series) -> str | None:
+    values = series.dropna().astype(str).str.strip()
+    values = values[values != ""]
+    if values.empty:
+        return None
+
+    mode = values.mode()
+    if mode.empty:
+        return str(values.iloc[0])
+    return str(mode.iloc[0])
+
+
 def _options_from_dataset(dataset: pd.DataFrame, source: str) -> dict[str, Any]:
     options = _empty_orcamento_options()
+    defaults: dict[str, str | float | int | None] = {}
     for feature, option_key in ORCAMENTO_OPTION_FIELDS.items():
         if feature not in dataset.columns:
             continue
         values = dataset[feature].dropna().astype(str).str.strip()
         values = values[values != ""]
         options[option_key] = sorted(values.unique().tolist())
+        defaults[feature] = _dataset_mode(dataset[feature])
 
     ranges: dict[str, dict[str, float]] = {}
-    for feature in (
-        "peso_total_kg",
-        "numero_pecas",
-        "lead_time",
-        "peso_por_peca_kg",
-        "lead_time_por_tonelada",
-    ):
+    for feature in ORCAMENTO_NUMERIC_OPTION_FIELDS:
         if feature not in dataset.columns:
             continue
         series = pd.to_numeric(dataset[feature], errors="coerce").dropna()
@@ -418,8 +414,15 @@ def _options_from_dataset(dataset: pd.DataFrame, source: str) -> dict[str, Any]:
             "min": float(series.min()),
             "max": float(series.max()),
         }
+        median = float(series.median())
+        defaults[feature] = (
+            int(round(median))
+            if feature in {"numero_pecas", "lead_time"}
+            else median
+        )
 
     options["feature_ranges"] = ranges
+    options["feature_defaults"] = defaults
     options["features_usadas"] = [
         feature
         for feature in (
@@ -429,10 +432,7 @@ def _options_from_dataset(dataset: pd.DataFrame, source: str) -> dict[str, Any]:
             "numero_pecas",
             "material_principal",
             "tratamento_superficie",
-            "processo_corte",
             "lead_time",
-            "peso_por_peca_kg",
-            "lead_time_por_tonelada",
         )
         if feature in dataset.columns
     ]
@@ -442,20 +442,26 @@ def _options_from_dataset(dataset: pd.DataFrame, source: str) -> dict[str, Any]:
 
 
 def get_orcamento_options(model_base_dir: Path = MODEL_BASE_DIR) -> dict[str, Any]:
+    try:
+        dataset = build_dataset("orcamento")
+        if not dataset.empty:
+            return _options_from_dataset(dataset, source="base_dados")
+    except Exception:
+        # Se a BD nao estiver disponivel, ainda conseguimos preencher o frontend
+        # com o ultimo dataset CSV exportado ou, em ultimo caso, com as metricas.
+        pass
+
+    dataset_csv = _dataset_csv_for_type("orcamento_materiais")
+    if dataset_csv.exists():
+        dataset = pd.read_csv(dataset_csv, sep=";", encoding="utf-8-sig")
+        if not dataset.empty:
+            return _options_from_dataset(dataset, source="dataset_csv")
+
     _model_path, metrics_path = _model_paths("orcamento_materiais", model_base_dir=model_base_dir)
     if metrics_path.exists():
         options = _options_from_metrics(_load_metrics(metrics_path))
         if any(options[key] for key in ORCAMENTO_OPTION_FIELDS.values()):
             return options
-
-    dataset_csv = _dataset_csv_for_type("orcamento_materiais")
-    if dataset_csv.exists():
-        dataset = pd.read_csv(dataset_csv, sep=";", encoding="utf-8-sig")
-        return _options_from_dataset(dataset, source="dataset_csv")
-
-    dataset = build_dataset("orcamento")
-    if not dataset.empty:
-        return _options_from_dataset(dataset, source="base_dados")
 
     return _empty_orcamento_options()
 

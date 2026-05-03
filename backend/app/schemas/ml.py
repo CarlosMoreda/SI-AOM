@@ -11,7 +11,6 @@ class MLPredictCustoRequest(BaseModel):
     numero_pecas: int | None = Field(default=None, ge=1)
     material_principal: str | None = Field(default=None, max_length=100)
     tratamento_superficie: str | None = Field(default=None, max_length=100)
-    processo_corte: str | None = Field(default=None, max_length=100)
     lead_time: int | None = Field(default=None, ge=1)
     # Opcionais: ligacao a um orcamento ja existente e nota livre.
     # Sao usados apenas para persistir a previsao em previsao_ml.
@@ -27,7 +26,6 @@ class MLPredictCustoRequest(BaseModel):
             "numero_pecas",
             "material_principal",
             "tratamento_superficie",
-            "processo_corte",
             "lead_time",
         )
         missing = []
@@ -66,8 +64,8 @@ class MLPredictOptionsResponse(BaseModel):
     complexidades: list[str] = Field(default_factory=list)
     materiais: list[str] = Field(default_factory=list)
     tratamentos: list[str] = Field(default_factory=list)
-    processos_corte: list[str] = Field(default_factory=list)
     feature_ranges: dict[str, dict[str, float]] = Field(default_factory=dict)
+    feature_defaults: dict[str, str | float | int | None] = Field(default_factory=dict)
     features_usadas: list[str] = Field(default_factory=list)
     dataset_linhas: int | None = None
     source: str = "indisponivel"

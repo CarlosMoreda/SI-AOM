@@ -10,6 +10,10 @@ const DEFAULT_OPTIONS = {
   tratamentos: [],
   processos_corte: [],
   feature_ranges: {},
+  feature_defaults: {},
+  features_usadas: [],
+  dataset_linhas: null,
+  source: 'indisponivel',
 }
 
 const EMPTY_PARAMS = {
@@ -23,12 +27,45 @@ const EMPTY_PARAMS = {
   lead_time: '',
 }
 
+const OPTION_KEYS_BY_FIELD = {
+  tipologia: 'tipologias',
+  complexidade: 'complexidades',
+  material_principal: 'materiais',
+  tratamento_superficie: 'tratamentos',
+  processo_corte: 'processos_corte',
+}
+
+const NUMERIC_FIELDS = {
+  peso_total_kg: { integer: false, fallbackMin: 0.01, fallbackPlaceholder: 'ex: 4500.5' },
+  numero_pecas: { integer: true, fallbackMin: 1, fallbackPlaceholder: 'ex: 12' },
+  lead_time: { integer: true, fallbackMin: 1, fallbackPlaceholder: 'ex: 30' },
+}
+
+function numericInputValue(field, value) {
+  if (value === null || value === undefined || value === '') return ''
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return ''
+  return NUMERIC_FIELDS[field]?.integer ? String(Math.round(numeric)) : String(Number(numeric.toFixed(2)))
+}
+
+function formatRangeValue(field, value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return ''
+  return NUMERIC_FIELDS[field]?.integer ? String(Math.round(numeric)) : numeric.toFixed(2)
+}
+
+function sourceLabel(source) {
+  if (source === 'dataset_csv') return 'CSV do dataset'
+  if (source === 'base_dados') return 'dataset gerado da BD'
+  if (source === 'modelo') return 'modelo treinado'
+  return 'indisponivel'
+}
+
 export default function MlModule({ token, user }) {
   const isAdmin = user?.perfil === 'administrador'
 
   const [activeTab, setActiveTab] = useState('prever')
 
-  // ── Previsao de orcamento ────────────────────────────────────────────────
   const [params, setParams] = useState(EMPTY_PARAMS)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -37,7 +74,6 @@ export default function MlModule({ token, user }) {
   const [optionsLoading, setOptionsLoading] = useState(false)
   const [optionsError, setOptionsError] = useState('')
 
-  // ── Treino (admin) ───────────────────────────────────────────────────────
   const [trainLoading, setTrainLoading] = useState(false)
   const [trainError, setTrainError] = useState('')
   const [trainResult, setTrainResult] = useState(null)
@@ -48,6 +84,27 @@ export default function MlModule({ token, user }) {
 
   function optionsFor(key) {
     return Array.isArray(options[key]) ? options[key] : []
+  }
+
+  function featureRange(field) {
+    const range = options.feature_ranges?.[field]
+    if (!range) return null
+    const min = Number(range.min)
+    const max = Number(range.max)
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return null
+    return { min, max }
+  }
+
+  function rangePlaceholder(field) {
+    const range = featureRange(field)
+    if (!range) return NUMERIC_FIELDS[field]?.fallbackPlaceholder || ''
+    return `${formatRangeValue(field, range.min)} - ${formatRangeValue(field, range.max)}`
+  }
+
+  function rangeText(field) {
+    const range = featureRange(field)
+    if (!range) return ''
+    return `Dataset: ${formatRangeValue(field, range.min)} a ${formatRangeValue(field, range.max)}`
   }
 
   function getQualityLabel(quality) {
@@ -90,6 +147,33 @@ export default function MlModule({ token, user }) {
       cancelled = true
     }
   }, [token])
+
+  useEffect(() => {
+    const defaults = options.feature_defaults || {}
+    setParams((current) => {
+      const next = { ...current }
+      let changed = false
+
+      Object.entries(OPTION_KEYS_BY_FIELD).forEach(([field, optionKey]) => {
+        if (next[field]) return
+        const values = Array.isArray(options[optionKey]) ? options[optionKey] : []
+        if (values.length === 0) return
+        const defaultValue = defaults[field] !== undefined && defaults[field] !== null ? String(defaults[field]) : ''
+        next[field] = defaultValue && values.includes(defaultValue) ? defaultValue : values[0]
+        changed = true
+      })
+
+      Object.keys(NUMERIC_FIELDS).forEach((field) => {
+        if (next[field]) return
+        const value = numericInputValue(field, defaults[field])
+        if (!value) return
+        next[field] = value
+        changed = true
+      })
+
+      return changed ? next : current
+    })
+  }, [options])
 
   const handlePredict = useCallback(
     async (e) => {
@@ -164,7 +248,6 @@ export default function MlModule({ token, user }) {
         )}
       </div>
 
-      {/* ── Previsao de orcamento ──────────────────────────────────────────── */}
       {activeTab === 'prever' && (
         <div className="panel">
           <div className="panel-head">
@@ -184,6 +267,12 @@ export default function MlModule({ token, user }) {
             <p className="ml-hint ml-train-hint">Contacte um administrador para treinar os modelos.</p>
           )}
           {optionsError && <p className="message error">{optionsError}</p>}
+          {!optionsError && (options.dataset_linhas || options.source !== 'indisponivel') && (
+            <div className="ml-dataset-meta">
+              <span>Origem: {sourceLabel(options.source)}</span>
+              {options.dataset_linhas ? <span>{options.dataset_linhas} linhas</span> : null}
+            </div>
+          )}
 
           <form onSubmit={handlePredict}>
             <fieldset className="ml-fieldset">
@@ -207,21 +296,23 @@ export default function MlModule({ token, user }) {
                   Peso total (kg)
                   <input
                     required
-                    type="number" step="0.01" min="0.01"
+                    type="number" step="0.01" min={featureRange('peso_total_kg')?.min ?? 0.01} max={featureRange('peso_total_kg')?.max ?? undefined}
                     value={params.peso_total_kg}
                     onChange={(e) => setParam('peso_total_kg', e.target.value)}
-                    placeholder="ex: 4500.5"
+                    placeholder={rangePlaceholder('peso_total_kg')}
                   />
+                  {rangeText('peso_total_kg') && <small className="ml-range-note">{rangeText('peso_total_kg')}</small>}
                 </label>
                 <label>
-                  N.º de pecas
+                  N. de pecas
                   <input
                     required
-                    type="number" min="1"
+                    type="number" min={featureRange('numero_pecas')?.min ?? 1} max={featureRange('numero_pecas')?.max ?? undefined}
                     value={params.numero_pecas}
                     onChange={(e) => setParam('numero_pecas', e.target.value)}
-                    placeholder="ex: 12"
+                    placeholder={rangePlaceholder('numero_pecas')}
                   />
+                  {rangeText('numero_pecas') && <small className="ml-range-note">{rangeText('numero_pecas')}</small>}
                 </label>
                 <label>
                   Material principal
@@ -248,11 +339,12 @@ export default function MlModule({ token, user }) {
                   Lead time (dias)
                   <input
                     required
-                    type="number" min="1"
+                    type="number" min={featureRange('lead_time')?.min ?? 1} max={featureRange('lead_time')?.max ?? undefined}
                     value={params.lead_time}
                     onChange={(e) => setParam('lead_time', e.target.value)}
-                    placeholder="ex: 30"
+                    placeholder={rangePlaceholder('lead_time')}
                   />
+                  {rangeText('lead_time') && <small className="ml-range-note">{rangeText('lead_time')}</small>}
                 </label>
               </div>
             </fieldset>
@@ -321,7 +413,7 @@ export default function MlModule({ token, user }) {
                   <small>
                     {result.custo_total > 0
                       ? `${((result.custo_materiais / result.custo_total) * 100).toFixed(1)}% do total`
-                      : '—'}
+                      : '-'}
                   </small>
                 </div>
                 <div className="ml-result-card">
@@ -330,7 +422,7 @@ export default function MlModule({ token, user }) {
                   <small>
                     {result.custo_total > 0
                       ? `${((result.custo_operacoes / result.custo_total) * 100).toFixed(1)}% do total`
-                      : '—'}
+                      : '-'}
                   </small>
                 </div>
                 <div className="ml-result-card">
@@ -339,7 +431,7 @@ export default function MlModule({ token, user }) {
                   <small>
                     {result.custo_total > 0
                       ? `${((result.custo_servicos / result.custo_total) * 100).toFixed(1)}% do total`
-                      : '—'}
+                      : '-'}
                   </small>
                 </div>
                 <div className="ml-result-card ml-card-total">
@@ -379,7 +471,6 @@ export default function MlModule({ token, user }) {
         </div>
       )}
 
-      {/* ── Treino (admin) ─────────────────────────────────────────────────── */}
       {isAdmin && activeTab === 'treino' && (
         <div className="panel">
           <div className="panel-head">
