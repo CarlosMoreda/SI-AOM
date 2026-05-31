@@ -1,11 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import AuthPage from './components/AuthPage'
 import DashboardPage from './components/DashboardPage'
+import ForgotPasswordPage from './components/ForgotPasswordPage'
+import ResetPasswordPage from './components/ResetPasswordPage'
 import { useAuth } from './hooks/useAuth'
 import { useDashboard } from './hooks/useDashboard'
 import './style/auth-page.css'
 import './style/dashboard-page.css'
+
+function readResetTokenFromUrl() {
+  if (typeof window === 'undefined') return ''
+  const params = new URLSearchParams(window.location.search)
+  return params.get('reset_token') || ''
+}
+
+function clearResetTokenFromUrl() {
+  if (typeof window === 'undefined') return
+  const url = new URL(window.location.href)
+  url.searchParams.delete('reset_token')
+  window.history.replaceState({}, '', url.toString())
+}
 
 function App() {
   const auth = useAuth()
@@ -13,6 +28,16 @@ function App() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [authView, setAuthView] = useState('login') // 'login' | 'forgot' | 'reset'
+  const [resetToken, setResetToken] = useState('')
+
+  useEffect(() => {
+    const token = readResetTokenFromUrl()
+    if (token) {
+      setResetToken(token)
+      setAuthView('reset')
+    }
+  }, [])
 
   async function handleLogin(event) {
     event.preventDefault()
@@ -22,7 +47,19 @@ function App() {
     }
   }
 
+  function backToLogin() {
+    clearResetTokenFromUrl()
+    setResetToken('')
+    setAuthView('login')
+  }
+
   if (!auth.token) {
+    if (authView === 'forgot') {
+      return <ForgotPasswordPage onBack={backToLogin} />
+    }
+    if (authView === 'reset' && resetToken) {
+      return <ResetPasswordPage token={resetToken} onDone={backToLogin} />
+    }
     return (
       <AuthPage
         email={email}
@@ -32,6 +69,7 @@ function App() {
         onSubmit={handleLogin}
         authLoading={auth.authLoading}
         authError={auth.authError}
+        onForgotPassword={() => setAuthView('forgot')}
       />
     )
   }

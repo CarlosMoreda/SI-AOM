@@ -47,6 +47,7 @@ class MLPredictCustoResponse(BaseModel):
     custo_operacoes: float
     custo_servicos: float
     custo_total: float
+    tempo_previsto: float = 0.0
     modelo_utilizado: str
     modelo_versao: str | None = None
     qualidade_modelo: Literal["boa", "aceitavel", "fraca", "indeterminada"] = "indeterminada"

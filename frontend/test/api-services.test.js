@@ -71,7 +71,7 @@ test('projetos cria registos no endpoint correto', async () => {
 
 test('orcamentos cria registos no endpoint correto', async () => {
   const calls = mockFetch({ id_orcamento: 2 })
-  const payload = { id_projeto: 1, versao: 'v1', estado: 'rascunho' }
+  const payload = { id_projeto: 1, versao: 'v1', estado: 'em_preparacao' }
 
   await createOrcamento('token-123', payload)
 

@@ -6,6 +6,7 @@ export default function AuthPage({
   onSubmit,
   authLoading,
   authError,
+  onForgotPassword,
 }) {
   return (
     <main className="auth-shell">
@@ -42,6 +43,14 @@ export default function AuthPage({
         </form>
 
         {authError && <p className="message error">{authError}</p>}
+
+        {onForgotPassword && (
+          <p className="auth-secondary">
+            <button type="button" className="link-button" onClick={onForgotPassword}>
+              Esqueci-me da password
+            </button>
+          </p>
+        )}
       </section>
     </main>
   )

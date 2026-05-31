@@ -25,6 +25,9 @@ DEFAULT_TARGETS: Final[dict[str, str]] = {
     "orcamento_materiais": "real_materiais",
     "orcamento_operacoes": "real_operacoes",
     "orcamento_servicos": "real_servicos",
+    # Prevê horas REAIS totais de execução (horas + tempo_setup das operacoes
+    # realizadas), agregadas por orcamento. Mesmas features tecnicas do projeto.
+    "orcamento_horas": "real_horas",
 }
 
 # Colunas removidas no treino para evitar leakage. Todos os custo_total_*
@@ -34,30 +37,38 @@ DEFAULT_TARGETS: Final[dict[str, str]] = {
 LEAKAGE_COLUMNS: Final[dict[str, set[str]]] = {
     "orcamento_materiais": {
         "custo_total_materiais", "custo_total_operacoes", "custo_total_servicos",
-        "real_operacoes", "real_servicos",
+        "real_operacoes", "real_servicos", "real_horas",
     },
     "orcamento_operacoes": {
         "custo_total_materiais", "custo_total_operacoes", "custo_total_servicos",
-        "real_materiais", "real_servicos",
+        "real_materiais", "real_servicos", "real_horas",
     },
     "orcamento_servicos": {
         "custo_total_materiais", "custo_total_operacoes", "custo_total_servicos",
-        "real_materiais", "real_operacoes",
+        "real_materiais", "real_operacoes", "real_horas",
+    },
+    # Para o modelo de horas, todos os custos (orcados e reais) sao leakage:
+    # nao estao disponiveis no momento da previsao e correlacionam com a saida.
+    "orcamento_horas": {
+        "custo_total_materiais", "custo_total_operacoes", "custo_total_servicos",
+        "real_materiais", "real_operacoes", "real_servicos",
     },
 }
 
-# Os 3 sub-modelos partilham o mesmo CSV de origem (dataset_orcamento.csv),
+# Os sub-modelos partilham o mesmo CSV de origem (dataset_orcamento.csv),
 # gerado pela query orcamento_query.
 DATASET_CSV_SOURCE: Final[dict[str, str]] = {
     "orcamento_materiais": "orcamento",
     "orcamento_operacoes": "orcamento",
     "orcamento_servicos": "orcamento",
+    "orcamento_horas": "orcamento",
 }
 
 ORCAMENTO_SUB_MODELS: Final[tuple[str, ...]] = (
     "orcamento_materiais",
     "orcamento_operacoes",
     "orcamento_servicos",
+    "orcamento_horas",
 )
 
 

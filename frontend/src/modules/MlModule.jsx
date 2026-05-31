@@ -8,7 +8,6 @@ const DEFAULT_OPTIONS = {
   complexidades: [],
   materiais: [],
   tratamentos: [],
-  processos_corte: [],
   feature_ranges: {},
   feature_defaults: {},
   features_usadas: [],
@@ -23,7 +22,6 @@ const EMPTY_PARAMS = {
   numero_pecas: '',
   material_principal: '',
   tratamento_superficie: '',
-  processo_corte: '',
   lead_time: '',
 }
 
@@ -32,7 +30,6 @@ const OPTION_KEYS_BY_FIELD = {
   complexidade: 'complexidades',
   material_principal: 'materiais',
   tratamento_superficie: 'tratamentos',
-  processo_corte: 'processos_corte',
 }
 
 const NUMERIC_FIELDS = {
@@ -189,7 +186,6 @@ export default function MlModule({ token, user }) {
           numero_pecas: params.numero_pecas !== '' ? Number(params.numero_pecas) : null,
           material_principal: params.material_principal || null,
           tratamento_superficie: params.tratamento_superficie || null,
-          processo_corte: params.processo_corte || null,
           lead_time: params.lead_time !== '' ? Number(params.lead_time) : null,
         }
         setResult(await predictCusto(token, payload))
@@ -329,13 +325,6 @@ export default function MlModule({ token, user }) {
                   </select>
                 </label>
                 <label>
-                  Processo de corte
-                  <select required disabled={optionsLoading} value={params.processo_corte} onChange={(e) => setParam('processo_corte', e.target.value)}>
-                    <option value="">{optionsLoading ? 'A carregar...' : 'Selecionar'}</option>
-                    {optionsFor('processos_corte').map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </label>
-                <label>
                   Lead time (dias)
                   <input
                     required
@@ -437,6 +426,15 @@ export default function MlModule({ token, user }) {
                 <div className="ml-result-card ml-card-total">
                   <p>Custo Total Previsto</p>
                   <strong>{formatMoney(result.custo_total)}</strong>
+                </div>
+                <div className="ml-result-card ml-card-tempo">
+                  <p>Horas Previstas</p>
+                  <strong>
+                    {Number.isFinite(Number(result.tempo_previsto))
+                      ? `${Number(result.tempo_previsto).toFixed(1)} h`
+                      : '-'}
+                  </strong>
+                  <small>execucao + setup</small>
                 </div>
               </div>
 

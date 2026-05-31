@@ -19,3 +19,16 @@ class UtilizadorMe(BaseModel):
     ativo: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PasswordResetRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=10, max_length=512)
+    nova_password: str = Field(min_length=8, max_length=72)
+
+
+class PasswordResetGenericResponse(BaseModel):
+    mensagem: str

@@ -597,20 +597,31 @@ tbody tr:hover td {
   white-space: nowrap;
 }
 
+/* Estados do ciclo de vida do orcamento (relatorio 3.5) e do projeto. */
+
+/* Sucesso: cliente adjudicou ou trabalho concluido com sucesso. */
 .badge-aprovado,
+.badge-adjudicado,
 .badge-concluido {
   color: var(--success);
   background: var(--success-soft);
   border-color: rgba(120, 223, 169, 0.28);
 }
 
+/* Em curso: trabalho em producao. */
 .badge-em_execucao {
   color: var(--warning);
   background: var(--warning-soft);
   border-color: rgba(240, 180, 84, 0.28);
 }
 
+/* Em fluxo / em analise: orcamento em preparacao, revisao, ja validado ou
+   enviado ao cliente; tambem catalogo material/gestor. */
 .badge-em_analise,
+.badge-em_preparacao,
+.badge-em_revisao,
+.badge-validado,
+.badge-enviado,
 .badge-rascunho,
 .badge-material,
 .badge-gestor {
@@ -619,10 +630,18 @@ tbody tr:hover td {
   border-color: rgba(66, 183, 223, 0.24);
 }
 
+/* Falha: cliente rejeitou. */
 .badge-rejeitado {
   color: var(--danger);
   background: var(--danger-soft);
   border-color: rgba(239, 125, 125, 0.28);
+}
+
+/* Terminal: arquivado (saiu do fluxo ativo). */
+.badge-arquivado {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .badge-administrador {

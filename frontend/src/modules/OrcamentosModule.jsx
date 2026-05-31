@@ -23,12 +23,23 @@ import { listServicos } from '../services/servicoService'
 import OrcamentoDetailsPanel from './orcamentos/OrcamentoDetailsPanel'
 import OrcamentoDraftLines from './orcamentos/OrcamentoDraftLines'
 
-const ESTADOS_ORC = ['rascunho', 'em_revisao', 'aprovado', 'rejeitado']
+// Estados conforme o ciclo de vida do orcamento (relatorio 3.5).
+const ESTADOS_ORC = [
+  'em_preparacao',
+  'em_revisao',
+  'validado',
+  'enviado',
+  'adjudicado',
+  'rejeitado',
+  'em_execucao',
+  'concluido',
+  'arquivado',
+]
 
 const EMPTY_ORC_FORM = {
   id_projeto: '',
   versao: '',
-  estado: 'rascunho',
+  estado: 'em_preparacao',
   margem_percentual: '',
   observacoes: '',
 }
@@ -36,6 +47,7 @@ const EMPTY_ORC_FORM = {
 const EMPTY_DRAFT_MAT_FORM = {
   id_material: '',
   quantidade: '',
+  peso_kg: '',
   desperdicio_percent: '0',
   observacoes: '',
 }
@@ -92,7 +104,7 @@ export default function OrcamentosModule({ token }) {
   const [loadingLinhas, setLoadingLinhas] = useState(false)
 
   // Add-line forms
-  const [addMatForm, setAddMatForm] = useState({ id_material: '', quantidade: '', desperdicio_percent: '0', observacoes: '' })
+  const [addMatForm, setAddMatForm] = useState({ id_material: '', quantidade: '', peso_kg: '', desperdicio_percent: '0', observacoes: '' })
   const [addOpForm, setAddOpForm] = useState({ id_operacao: '', horas: '', tempo_setup_h: '0', observacoes: '' })
   const [addSvcForm, setAddSvcForm] = useState({ id_servico: '', quantidade: '', observacoes: '' })
 
@@ -246,7 +258,7 @@ export default function OrcamentosModule({ token }) {
     setOrcForm({
       id_projeto: String(orc.id_projeto),
       versao: orc.versao ?? '',
-      estado: orc.estado ?? 'rascunho',
+      estado: orc.estado ?? 'em_preparacao',
       margem_percentual: orc.margem_percentual ?? '',
       observacoes: orc.observacoes ?? '',
     })
@@ -276,6 +288,7 @@ export default function OrcamentosModule({ token }) {
     const idMaterial = Number(draftMatForm.id_material)
     const quantidade = Number(draftMatForm.quantidade)
     const desperdicioPercent = Number(draftMatForm.desperdicio_percent || 0)
+    const pesoKg = draftMatForm.peso_kg !== '' ? Number(draftMatForm.peso_kg) : null
 
     if (!idMaterial || !Number.isFinite(quantidade) || quantidade <= 0) {
       setError('Preencha material e quantidade validos.')
@@ -288,6 +301,7 @@ export default function OrcamentosModule({ token }) {
       {
         id_material: idMaterial,
         quantidade,
+        peso_kg: pesoKg !== null && Number.isFinite(pesoKg) ? pesoKg : null,
         desperdicio_percent: Number.isFinite(desperdicioPercent) ? desperdicioPercent : 0,
         observacoes: draftMatForm.observacoes || null,
         label: material ? `${material.codigo} - ${material.nome}` : String(idMaterial),
@@ -364,6 +378,7 @@ export default function OrcamentosModule({ token }) {
       await addOrcamentoMaterial(token, idOrcamento, {
         id_material: linha.id_material,
         quantidade: linha.quantidade,
+        peso_kg: linha.peso_kg,
         desperdicio_percent: linha.desperdicio_percent,
         observacoes: linha.observacoes,
       })
@@ -505,10 +520,11 @@ export default function OrcamentosModule({ token }) {
       await addOrcamentoMaterial(token, selectedOrc.id_orcamento, {
         id_material: Number(addMatForm.id_material),
         quantidade: Number(addMatForm.quantidade),
+        peso_kg: addMatForm.peso_kg !== '' ? Number(addMatForm.peso_kg) : null,
         desperdicio_percent: Number(addMatForm.desperdicio_percent || 0),
         observacoes: addMatForm.observacoes || null,
       })
-      setAddMatForm({ id_material: '', quantidade: '', desperdicio_percent: '0', observacoes: '' })
+      setAddMatForm({ id_material: '', quantidade: '', peso_kg: '', desperdicio_percent: '0', observacoes: '' })
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {

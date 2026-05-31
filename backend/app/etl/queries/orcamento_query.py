@@ -35,11 +35,20 @@ real_servicos AS (
     JOIN detalhe_servico_orcamento dso
         ON rs.id_linha_servico = dso.id_linha_servico
     GROUP BY dso.id_orcamento
+),
+real_horas_op AS (
+    SELECT
+        doo.id_orcamento,
+        SUM(ro.horas + ro.tempo_setup_h) AS total
+    FROM realizado_operacao ro
+    JOIN detalhe_operacao_orcamento doo
+        ON ro.id_linha_operacao = doo.id_linha_operacao
+    GROUP BY doo.id_orcamento
 )
 SELECT
     p.tipologia,
     p.complexidade,
-    p.peso_total_kg,
+    o.peso_total_kg,
     p.numero_pecas,
     p.material_principal,
     p.tratamento_superficie,
@@ -57,7 +66,8 @@ SELECT
     o.custo_total_servicos,
     COALESCE(rm.total, 0) AS real_materiais,
     COALESCE(ro.total, 0) AS real_operacoes,
-    COALESCE(rs.total, 0) AS real_servicos
+    COALESCE(rs.total, 0) AS real_servicos,
+    COALESCE(rho.total, 0) AS real_horas
 FROM orcamento o
 JOIN projeto p
     ON p.id_projeto = o.id_projeto
@@ -67,6 +77,8 @@ LEFT JOIN real_operacoes ro
     ON ro.id_orcamento = o.id_orcamento
 LEFT JOIN real_servicos rs
     ON rs.id_orcamento = o.id_orcamento
+LEFT JOIN real_horas_op rho
+    ON rho.id_orcamento = o.id_orcamento
 WHERE o.custo_total_orcado > 0
   AND (
       COALESCE(rm.registos, 0)

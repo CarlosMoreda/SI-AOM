@@ -2,10 +2,10 @@
   "dataset_type": "orcamento_servicos",
   "dataset_source": "orcamento",
   "target": "real_servicos",
-  "trained_at": "2026-05-03T16:43:09.551399+00:00",
-  "rows_total": 2033,
-  "rows_train": 1524,
-  "rows_test": 509,
+  "trained_at": "2026-05-31T14:14:38.634604+00:00",
+  "rows_total": 3000,
+  "rows_train": 2250,
+  "rows_test": 750,
   "evaluation_mode": "holdout",
   "features_used": [
     "tipologia",
@@ -14,17 +14,16 @@
     "numero_pecas",
     "material_principal",
     "tratamento_superficie",
-    "processo_corte",
     "lead_time"
   ],
   "feature_ranges": {
     "peso_total_kg": {
-      "min": 484.79,
-      "max": 117832.06
+      "min": 224.08,
+      "max": 11986.77
     },
     "numero_pecas": {
-      "min": 20.0,
-      "max": 2397.0
+      "min": 15.0,
+      "max": 999.0
     },
     "lead_time": {
       "min": 21.0,
@@ -59,33 +58,29 @@
       "pintura_liquida",
       "polimento",
       "sem_tratamento"
-    ],
-    "processo_corte": [
-      "corte",
-      "laser_chapa",
-      "laser_tubo"
     ]
   },
   "dropped_columns": [
     "custo_total_servicos",
-    "real_operacoes",
     "custo_total_materiais",
+    "real_horas",
     "real_materiais",
+    "real_operacoes",
     "custo_total_operacoes",
     "real_servicos"
   ],
-  "mae": 2073.670610216114,
-  "rmse": 5204.2684808214035,
-  "r2": 0.9589444435861446,
-  "baseline_mae": 13938.187534381139,
-  "baseline_rmse": 27892.56553902812,
-  "baseline_r2": -0.17931407161667434,
+  "mae": 260.37782273333363,
+  "rmse": 574.6777066785346,
+  "r2": 0.9402670188611091,
+  "baseline_mae": 1666.4730533333334,
+  "baseline_rmse": 2525.1101781620805,
+  "baseline_r2": -0.15325714739781304,
   "model_beats_baseline": true,
   "cv_folds": 5,
-  "cv_mae_mean": 2158.409280553161,
-  "cv_mae_std": 341.4740464981764,
-  "cv_r2_mean": 0.950896421175891,
-  "cv_r2_std": 0.016781222873988998,
+  "cv_mae_mean": 256.1391356666668,
+  "cv_mae_std": 19.61517038873867,
+  "cv_r2_mean": 0.9501162989856203,
+  "cv_r2_std": 0.00919049860509832,
   "quality_status": "good",
   "params": {
     "n_estimators": 400,

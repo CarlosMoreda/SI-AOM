@@ -17,7 +17,6 @@ class Projeto(Base):
     estado: Mapped[str] = mapped_column(String(50), nullable=False, default="em_analise")
     data_inicio: Mapped[date | None] = mapped_column(Date, nullable=True)
     data_entrega_prevista: Mapped[date | None] = mapped_column(Date, nullable=True)
-    peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     numero_pecas: Mapped[int | None] = mapped_column(Integer, nullable=True)
     complexidade: Mapped[str | None] = mapped_column(String(50), nullable=True)
     material_principal: Mapped[str | None] = mapped_column(String(100), nullable=True)

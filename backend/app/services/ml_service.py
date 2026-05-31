@@ -471,8 +471,9 @@ def predict_custo_from_params(
     model_base_dir: Path = MODEL_BASE_DIR,
 ) -> dict[str, Any]:
     """
-    Preve os custos orcados (materiais, operacoes, servicos) a partir de
-    parametros do projeto, sem necessidade de um orcamento existente na BD.
+    Preve os custos por componente (materiais, operacoes, servicos) e as
+    horas reais de execucao a partir dos parametros do projeto, sem
+    necessidade de um orcamento existente na BD.
     """
     parametros = dict(parametros)
     _validate_orcamento_parametros(parametros)
@@ -507,14 +508,20 @@ def predict_custo_from_params(
         dataset_df = pd.DataFrame([parametros])
         X = _align_features(model=model, features_used=features_used, dataset_df=dataset_df)
         y_pred = model.predict(X)
-        valor = max(0.0, float(y_pred[0]))  # custo nunca negativo
+        valor = max(0.0, float(y_pred[0]))  # custo/horas nunca negativos
 
-        componente = sub_model.replace("orcamento_", "")  # materiais / operacoes / servicos
+        # materiais / operacoes / servicos / horas
+        componente = sub_model.replace("orcamento_", "")
         resultados[componente] = valor
         versoes.append(_model_version_from_path(model_path))
         quality_rows.append(metrics)
 
-    custo_total = resultados.get("materiais", 0) + resultados.get("operacoes", 0) + resultados.get("servicos", 0)
+    custo_total = (
+        resultados.get("materiais", 0)
+        + resultados.get("operacoes", 0)
+        + resultados.get("servicos", 0)
+    )
+    tempo_previsto = resultados.get("horas", 0.0)
     qualidade_modelo, r2_medio_holdout, aviso_qualidade = _aggregate_quality(quality_rows)
     confianca_percentual = _confidence_percent(qualidade_modelo, r2_medio_holdout)
     if range_alerts:
@@ -533,6 +540,7 @@ def predict_custo_from_params(
         "custo_operacoes": resultados.get("operacoes", 0.0),
         "custo_servicos": resultados.get("servicos", 0.0),
         "custo_total": custo_total,
+        "tempo_previsto": tempo_previsto,
         "modelo_utilizado": MODEL_NAME,
         "modelo_versao": versoes[0] if versoes else None,
         "qualidade_modelo": qualidade_modelo,
@@ -566,6 +574,7 @@ def save_custo_prediction(
         "custo_materiais": resultado.get("custo_materiais"),
         "custo_operacoes": resultado.get("custo_operacoes"),
         "custo_servicos": resultado.get("custo_servicos"),
+        "tempo_previsto": resultado.get("tempo_previsto"),
         "qualidade_modelo": resultado.get("qualidade_modelo"),
         "confianca_percentual": resultado.get("confianca_percentual"),
         "fora_faixa_treino": resultado.get("fora_faixa_treino"),
@@ -576,7 +585,7 @@ def save_custo_prediction(
         modelo_utilizado=resultado.get("modelo_utilizado") or MODEL_NAME,
         modelo_versao=resultado.get("modelo_versao"),
         custo_previsto=resultado.get("custo_total"),
-        tempo_previsto=None,
+        tempo_previsto=resultado.get("tempo_previsto"),
         desvio_esperado_percent=None,
         inputs_chave=json.dumps(inputs_chave, ensure_ascii=False, default=str),
         observacoes=observacoes,

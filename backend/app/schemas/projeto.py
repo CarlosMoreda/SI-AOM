@@ -21,7 +21,6 @@ class ProjetoBase(BaseModel):
     estado: ProjetoEstado = "em_analise"
     data_inicio: date | None = None
     data_entrega_prevista: date | None = None
-    peso_total_kg: Decimal | None = Field(default=None, ge=0)
     numero_pecas: int | None = Field(default=None, ge=0)
     complexidade: str | None = Field(default=None, max_length=50)
     material_principal: str | None = Field(default=None, max_length=100)
@@ -43,7 +42,6 @@ class ProjetoUpdate(BaseModel):
     estado: ProjetoEstado | None = None
     data_inicio: date | None = None
     data_entrega_prevista: date | None = None
-    peso_total_kg: Decimal | None = Field(default=None, ge=0)
     numero_pecas: int | None = Field(default=None, ge=0)
     complexidade: str | None = Field(default=None, max_length=50)
     material_principal: str | None = Field(default=None, max_length=100)

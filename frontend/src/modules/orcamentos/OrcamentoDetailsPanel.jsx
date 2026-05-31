@@ -79,6 +79,14 @@ export default function OrcamentoDetailsPanel({
             <input
               type="number"
               step="0.01"
+              placeholder="Peso (kg)"
+              min="0"
+              value={addMatForm.peso_kg ?? ''}
+              onChange={(e) => setAddMatForm((f) => ({ ...f, peso_kg: e.target.value }))}
+            />
+            <input
+              type="number"
+              step="0.01"
               placeholder="Desperdicio %"
               min="0"
               value={addMatForm.desperdicio_percent}
@@ -99,6 +107,7 @@ export default function OrcamentoDetailsPanel({
                   <th>ID Linha</th>
                   <th>ID Material</th>
                   <th>Qtd</th>
+                  <th>Peso (kg)</th>
                   <th>Desperd.%</th>
                   <th>Preco Unit.</th>
                   <th>Custo Total</th>
@@ -112,6 +121,7 @@ export default function OrcamentoDetailsPanel({
                     <td>{linha.id_linha_material}</td>
                     <td>{linha.id_material}</td>
                     <td>{linha.quantidade}</td>
+                    <td>{linha.peso_kg ?? '-'}</td>
                     <td>{linha.desperdicio_percent}%</td>
                     <td>{formatMoney(linha.preco_unitario_snapshot)}</td>
                     <td>{formatMoney(linha.custo_total)}</td>
@@ -127,7 +137,7 @@ export default function OrcamentoDetailsPanel({
                     </td>
                   </tr>
                 ))}
-                {linhasMateriais.length === 0 && <tr><td colSpan={8}>Sem linhas de material.</td></tr>}
+                {linhasMateriais.length === 0 && <tr><td colSpan={9}>Sem linhas de material.</td></tr>}
               </tbody>
             </table>
           </div>

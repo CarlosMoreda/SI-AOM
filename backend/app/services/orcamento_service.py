@@ -55,6 +55,12 @@ def recalcular_totais_orcamento(db: Session, id_orcamento: int) -> Orcamento:
         ).where(DetalheOperacaoOrcamento.id_orcamento == id_orcamento)
     )
 
+    peso_total = db.scalar(
+        select(func.sum(DetalheMaterialOrcamento.peso_kg)).where(
+            DetalheMaterialOrcamento.id_orcamento == id_orcamento
+        )
+    )
+
     total_materiais = _q2(total_materiais)
     total_operacoes = _q2(total_operacoes)
     total_servicos = _q2(total_servicos)
@@ -69,6 +75,7 @@ def recalcular_totais_orcamento(db: Session, id_orcamento: int) -> Orcamento:
     orcamento.custo_total_servicos = total_servicos
     orcamento.custo_total_orcado = custo_total_orcado
     orcamento.horas_totais_previstas = horas_totais
+    orcamento.peso_total_kg = _q2(peso_total) if peso_total is not None else None
 
     # Recalcula preco_venda quando margem_percentual esta definida.
     if orcamento.margem_percentual is not None:

@@ -2,10 +2,10 @@
   "dataset_type": "orcamento_materiais",
   "dataset_source": "orcamento",
   "target": "real_materiais",
-  "trained_at": "2026-05-03T16:41:45.177350+00:00",
-  "rows_total": 2033,
-  "rows_train": 1524,
-  "rows_test": 509,
+  "trained_at": "2026-05-31T14:14:01.906389+00:00",
+  "rows_total": 3000,
+  "rows_train": 2250,
+  "rows_test": 750,
   "evaluation_mode": "holdout",
   "features_used": [
     "tipologia",
@@ -14,17 +14,16 @@
     "numero_pecas",
     "material_principal",
     "tratamento_superficie",
-    "processo_corte",
     "lead_time"
   ],
   "feature_ranges": {
     "peso_total_kg": {
-      "min": 484.79,
-      "max": 117832.06
+      "min": 224.08,
+      "max": 11986.77
     },
     "numero_pecas": {
-      "min": 20.0,
-      "max": 2397.0
+      "min": 15.0,
+      "max": 999.0
     },
     "lead_time": {
       "min": 21.0,
@@ -59,33 +58,29 @@
       "pintura_liquida",
       "polimento",
       "sem_tratamento"
-    ],
-    "processo_corte": [
-      "corte",
-      "laser_chapa",
-      "laser_tubo"
     ]
   },
   "dropped_columns": [
+    "real_materiais",
     "custo_total_servicos",
-    "real_operacoes",
+    "real_horas",
     "custo_total_materiais",
-    "real_servicos",
+    "real_operacoes",
     "custo_total_operacoes",
-    "real_materiais"
+    "real_servicos"
   ],
-  "mae": 9587.438139243615,
-  "rmse": 25074.466089814392,
-  "r2": 0.9743883846171595,
-  "baseline_mae": 90265.22418467584,
-  "baseline_rmse": 171226.78744568097,
-  "baseline_r2": -0.1943098100238847,
+  "mae": 825.6096312000008,
+  "rmse": 1984.0548164034374,
+  "r2": 0.9437029933590404,
+  "baseline_mae": 5710.6644799999995,
+  "baseline_rmse": 8745.581305365798,
+  "baseline_r2": -0.09384385970477016,
   "model_beats_baseline": true,
   "cv_folds": 5,
-  "cv_mae_mean": 9951.966341945274,
-  "cv_mae_std": 1580.058698072594,
-  "cv_r2_mean": 0.9679201345568107,
-  "cv_r2_std": 0.007651652538990249,
+  "cv_mae_mean": 794.7995222833339,
+  "cv_mae_std": 45.56448576049101,
+  "cv_r2_mean": 0.9572151268102536,
+  "cv_r2_std": 0.011471564323354333,
   "quality_status": "good",
   "params": {
     "n_estimators": 400,

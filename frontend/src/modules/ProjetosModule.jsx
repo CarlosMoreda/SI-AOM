@@ -21,6 +21,10 @@ const EMPTY_FORM = {
   data_entrega_prevista: '',
   complexidade: '',
   material_principal: '',
+  tratamento_superficie: '',
+  processo_corte: '',
+  numero_pecas: '',
+  lead_time: '',
   observacoes: '',
 }
 
@@ -80,6 +84,10 @@ export default function ProjetosModule({ token }) {
       data_entrega_prevista: project.data_entrega_prevista ?? '',
       complexidade: project.complexidade ?? '',
       material_principal: project.material_principal ?? '',
+      tratamento_superficie: project.tratamento_superficie ?? '',
+      processo_corte: project.processo_corte ?? '',
+      numero_pecas: project.numero_pecas != null ? String(project.numero_pecas) : '',
+      lead_time: project.lead_time != null ? String(project.lead_time) : '',
       observacoes: project.observacoes ?? '',
     })
     setShowForm(true)
@@ -113,6 +121,10 @@ export default function ProjetosModule({ token }) {
       data_entrega_prevista: form.data_entrega_prevista || null,
       complexidade: form.complexidade || null,
       material_principal: form.material_principal || null,
+      tratamento_superficie: form.tratamento_superficie || null,
+      processo_corte: form.processo_corte || null,
+      numero_pecas: form.numero_pecas !== '' ? Number(form.numero_pecas) : null,
+      lead_time: form.lead_time !== '' ? Number(form.lead_time) : null,
       observacoes: form.observacoes || null,
     }
 
@@ -234,6 +246,22 @@ export default function ProjetosModule({ token }) {
               <label>
                 Material principal
                 <input value={form.material_principal} onChange={(e) => setField('material_principal', e.target.value)} />
+              </label>
+              <label>
+                Tratamento superficie
+                <input value={form.tratamento_superficie} onChange={(e) => setField('tratamento_superficie', e.target.value)} />
+              </label>
+              <label>
+                Processo de corte
+                <input value={form.processo_corte} onChange={(e) => setField('processo_corte', e.target.value)} />
+              </label>
+              <label>
+                Numero de pecas
+                <input type="number" min="0" step="1" value={form.numero_pecas} onChange={(e) => setField('numero_pecas', e.target.value)} />
+              </label>
+              <label>
+                Lead time (dias)
+                <input type="number" min="0" step="1" value={form.lead_time} onChange={(e) => setField('lead_time', e.target.value)} />
               </label>
             </div>
             <label>

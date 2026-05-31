@@ -23,7 +23,7 @@ def test_orcamento_rejects_unknown_state():
         OrcamentoCreate(
             id_projeto=1,
             versao="v1",
-            estado="em_execucao",
+            estado="estado_inexistente",
         )
 
 

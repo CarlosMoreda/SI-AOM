@@ -125,17 +125,18 @@ export default function RealizadoModule({ token }) {
 
   // Material realizado
   async function handleAddRealizadoMat(idLinha) {
-    const f = addMatForms[idLinha] || { quantidade: '', custo_unitario_real: '', observacoes: '' }
+    const f = addMatForms[idLinha] || { quantidade: '', peso_kg: '', custo_unitario_real: '', observacoes: '' }
     if (!f.quantidade) return
     setError('')
     try {
       await createRealizadoMaterial(token, {
         id_linha_material: idLinha,
         quantidade: Number(f.quantidade),
+        peso_kg: f.peso_kg !== '' ? Number(f.peso_kg) : null,
         custo_unitario_real: f.custo_unitario_real !== '' ? Number(f.custo_unitario_real) : null,
         observacoes: f.observacoes || null,
       })
-      setAddMatForms((prev) => ({ ...prev, [idLinha]: { quantidade: '', custo_unitario_real: '', observacoes: '' } }))
+      setAddMatForms((prev) => ({ ...prev, [idLinha]: { quantidade: '', peso_kg: '', custo_unitario_real: '', observacoes: '' } }))
       setSuccess('Realizado registado.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
@@ -271,7 +272,7 @@ export default function RealizadoModule({ token }) {
               <div>
                 {linhasMateriais.map((linha) => {
                   const realizados = realizadosByLinhaMat[linha.id_linha_material] || []
-                  const f = addMatForms[linha.id_linha_material] || { quantidade: '', custo_unitario_real: '', observacoes: '' }
+                  const f = addMatForms[linha.id_linha_material] || { quantidade: '', peso_kg: '', custo_unitario_real: '', observacoes: '' }
                   return (
                     <div key={linha.id_linha_material} className="realizado-linha">
                       <div className="realizado-linha-head">
@@ -283,6 +284,11 @@ export default function RealizadoModule({ token }) {
                           type="number" step="0.001" placeholder="Qtd real"
                           value={f.quantidade}
                           onChange={(e) => setAddMatForms((p) => ({ ...p, [linha.id_linha_material]: { ...f, quantidade: e.target.value } }))}
+                        />
+                        <input
+                          type="number" step="0.01" placeholder="Peso real (kg)"
+                          value={f.peso_kg ?? ''}
+                          onChange={(e) => setAddMatForms((p) => ({ ...p, [linha.id_linha_material]: { ...f, peso_kg: e.target.value } }))}
                         />
                         <input
                           type="number" step="0.0001" placeholder="Custo unit. real (opcional)"
@@ -300,13 +306,14 @@ export default function RealizadoModule({ token }) {
                         <div className="table-scroll">
                           <table>
                             <thead>
-                              <tr><th>Data</th><th>Qtd</th><th>Custo Unit.</th><th>Total Real</th><th>Obs.</th><th></th></tr>
+                              <tr><th>Data</th><th>Qtd</th><th>Peso (kg)</th><th>Custo Unit.</th><th>Total Real</th><th>Obs.</th><th></th></tr>
                             </thead>
                             <tbody>
                               {realizados.map((r) => (
                                 <tr key={r.id_realizado_material}>
                                   <td>{formatDate(r.data_registo)}</td>
                                   <td>{r.quantidade}</td>
+                                  <td>{r.peso_kg ?? '-'}</td>
                                   <td>{formatMoney(r.custo_unitario_real)}</td>
                                   <td>{formatMoney(r.custo_total_real)}</td>
                                   <td>{r.observacoes || '-'}</td>

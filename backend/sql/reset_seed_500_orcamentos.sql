@@ -1,11 +1,11 @@
 -- Reset + seed massiva para SI-AOM
 -- Objetivos:
 -- 1) Apagar todos os dados
--- 2) Criar dados base realistas (materiais, operacoes, servicos)
--- 3) Criar >= 20000 orcamentos
+-- 2) Criar dados base realistas (catalogos amplos de materiais, operacoes, servicos)
+-- 3) Criar ~7500 orcamentos com versoes variaveis (1 ou 2 versoes por projeto)
 -- 4) Garantir >= 15 linhas por orcamento (8 materiais + 5 operacoes + 2 servicos)
 -- 5) Popular tabelas de realizados (apenas para projetos em execucao/concluidos)
--- 6) Distribuir custos de poucos milhares a varias centenas de milhares de euros
+-- 6) Cap de custo: nenhum orcamento ultrapassa 50.000 EUR
 -- 7) Espalhar datas por 3 anos (2024-2026) com coerencia entre estado e idade
 -- 8) Introduzir outliers realistas nos realizados (~10% derrapas/folgas anormais)
 
@@ -16,6 +16,7 @@ BEGIN;
 -- Evita conflito ao reexecutar o script na mesma sessao SQL.
 DROP TABLE IF EXISTS tmp_orcamento_scale;
 DROP TABLE IF EXISTS tmp_orcamento_target;
+DROP TABLE IF EXISTS tmp_orcamento_target_raw;
 
 TRUNCATE TABLE
     public.previsao_ml,
@@ -64,23 +65,68 @@ SELECT
     format('Zona Industrial Lote %s, Portugal', gs),
     'Cliente gerado automaticamente para seed.',
     true
-FROM generate_series(1, 250) AS gs;
+FROM generate_series(1, 350) AS gs;
 
 INSERT INTO public.material (codigo, nome, unidade, tipo, custo_unitario_default, ativo, qualidade_material)
 VALUES
-    ('MAT-TUBO-S235-30X30X2', 'Tubo quadrado 30x30x2 S235JR', 'm', 'tubo', 7.2000, true, 'S235JR'),
-    ('MAT-TUBO-S235-40X40X2', 'Tubo quadrado 40x40x2 S235JR', 'm', 'tubo', 9.8000, true, 'S235JR'),
-    ('MAT-TUBO-S235-60X40X3', 'Tubo retangular 60x40x3 S235JR', 'm', 'tubo', 14.5000, true, 'S235JR'),
-    ('MAT-TUBO-S355-50X50X3', 'Tubo quadrado 50x50x3 S355JR', 'm', 'tubo', 15.9000, true, 'S355JR'),
-    ('MAT-TUBO-S355-80X40X3', 'Tubo retangular 80x40x3 S355JR', 'm', 'tubo', 18.7000, true, 'S355JR'),
-    ('MAT-TUBO-S355-100X50X4', 'Tubo retangular 100x50x4 S355JR', 'm', 'tubo', 29.4000, true, 'S355JR'),
-    ('MAT-TUBO-S355-RD48X3', 'Tubo redondo 48.3x3.2 S355JR', 'm', 'tubo', 12.6000, true, 'S355JR'),
-    ('MAT-TUBO-INOX304-30X30X2', 'Tubo quadrado inox 30x30x2 AISI 304', 'm', 'tubo', 18.6000, true, 'AISI304'),
-    ('MAT-TUBO-INOX304-50X30X2', 'Tubo retangular inox 50x30x2 AISI 304', 'm', 'tubo', 24.8000, true, 'AISI304'),
-    ('MAT-TUBO-INOX304-80X40X3', 'Tubo retangular inox 80x40x3 AISI 304', 'm', 'tubo', 41.5000, true, 'AISI304'),
-    ('MAT-TUBO-ALU6060-30X30X2', 'Tubo quadrado aluminio 30x30x2 6060', 'm', 'tubo', 8.9000, true, 'AL6060'),
-    ('MAT-TUBO-ALU6060-50X30X2', 'Tubo retangular aluminio 50x30x2 6060', 'm', 'tubo', 11.7000, true, 'AL6060'),
-    ('MAT-TUBO-ALU6060-80X40X3', 'Tubo retangular aluminio 80x40x3 6060', 'm', 'tubo', 18.2000, true, 'AL6060'),
+    -- Tubos S235JR quadrados (do mais pequeno ao maior)
+    ('MAT-TUBO-S235-20X20X2',   'Tubo quadrado 20x20x2 S235JR',   'm', 'tubo', 5.2000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-25X25X2',   'Tubo quadrado 25x25x2 S235JR',   'm', 'tubo', 6.2000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-30X30X2',   'Tubo quadrado 30x30x2 S235JR',   'm', 'tubo', 7.2000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-35X35X2',   'Tubo quadrado 35x35x2 S235JR',   'm', 'tubo', 8.5000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-40X40X2',   'Tubo quadrado 40x40x2 S235JR',   'm', 'tubo', 9.8000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-40X40X3',   'Tubo quadrado 40x40x3 S235JR',   'm', 'tubo', 11.2000, true, 'S235JR'),
+    ('MAT-TUBO-S235-45X45X3',   'Tubo quadrado 45x45x3 S235JR',   'm', 'tubo', 12.8000, true, 'S235JR'),
+    ('MAT-TUBO-S235-50X50X3',   'Tubo quadrado 50x50x3 S235JR',   'm', 'tubo', 14.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-60X60X3',   'Tubo quadrado 60x60x3 S235JR',   'm', 'tubo', 17.2000, true, 'S235JR'),
+    ('MAT-TUBO-S235-70X70X4',   'Tubo quadrado 70x70x4 S235JR',   'm', 'tubo', 26.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-80X80X4',   'Tubo quadrado 80x80x4 S235JR',   'm', 'tubo', 30.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-100X100X5', 'Tubo quadrado 100x100x5 S235JR', 'm', 'tubo', 47.5000, true, 'S235JR'),
+    -- Tubos S235JR retangulares
+    ('MAT-TUBO-S235-50X30X2',   'Tubo retangular 50x30x2 S235JR',  'm', 'tubo', 11.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-60X40X3',   'Tubo retangular 60x40x3 S235JR',  'm', 'tubo', 14.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-80X40X3',   'Tubo retangular 80x40x3 S235JR',  'm', 'tubo', 18.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-100X50X4',  'Tubo retangular 100x50x4 S235JR', 'm', 'tubo', 28.5000, true, 'S235JR'),
+    ('MAT-TUBO-S235-120X60X4',  'Tubo retangular 120x60x4 S235JR', 'm', 'tubo', 34.5000, true, 'S235JR'),
+    -- Tubos S235JR redondos
+    ('MAT-TUBO-S235-RD21X2',    'Tubo redondo 21.3x2 S235JR',      'm', 'tubo', 4.8000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-RD27X3',    'Tubo redondo 26.9x3 S235JR',      'm', 'tubo', 6.2000,  true, 'S235JR'),
+    ('MAT-TUBO-S235-RD33X3',    'Tubo redondo 33.7x3 S235JR',      'm', 'tubo', 7.8000,  true, 'S235JR'),
+    -- Tubos S355JR quadrados e retangulares (alta resistencia)
+    ('MAT-TUBO-S355-35X35X3',   'Tubo quadrado 35x35x3 S355JR',    'm', 'tubo', 12.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-45X45X4',   'Tubo quadrado 45x45x4 S355JR',    'm', 'tubo', 18.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-50X50X3',   'Tubo quadrado 50x50x3 S355JR',    'm', 'tubo', 15.9000, true, 'S355JR'),
+    ('MAT-TUBO-S355-60X60X3',   'Tubo quadrado 60x60x3 S355JR',    'm', 'tubo', 19.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-70X70X4',   'Tubo quadrado 70x70x4 S355JR',    'm', 'tubo', 28.8000, true, 'S355JR'),
+    ('MAT-TUBO-S355-80X80X5',   'Tubo quadrado 80x80x5 S355JR',    'm', 'tubo', 38.2000, true, 'S355JR'),
+    ('MAT-TUBO-S355-100X100X6', 'Tubo quadrado 100x100x6 S355JR',  'm', 'tubo', 56.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-80X40X3',   'Tubo retangular 80x40x3 S355JR',  'm', 'tubo', 18.7000, true, 'S355JR'),
+    ('MAT-TUBO-S355-100X50X4',  'Tubo retangular 100x50x4 S355JR', 'm', 'tubo', 29.4000, true, 'S355JR'),
+    ('MAT-TUBO-S355-120X80X5',  'Tubo retangular 120x80x5 S355JR', 'm', 'tubo', 47.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-150X100X6', 'Tubo retangular 150x100x6 S355JR','m', 'tubo', 72.5000, true, 'S355JR'),
+    -- Tubos S355JR redondos
+    ('MAT-TUBO-S355-RD48X3',    'Tubo redondo 48.3x3.2 S355JR',    'm', 'tubo', 12.6000, true, 'S355JR'),
+    ('MAT-TUBO-S355-RD60X3',    'Tubo redondo 60.3x3.6 S355JR',    'm', 'tubo', 17.5000, true, 'S355JR'),
+    ('MAT-TUBO-S355-RD89X4',    'Tubo redondo 88.9x4 S355JR',      'm', 'tubo', 28.5000, true, 'S355JR'),
+    -- Tubos AISI304 (inox)
+    ('MAT-TUBO-INOX304-20X20X2', 'Tubo quadrado inox 20x20x2 AISI 304',  'm', 'tubo', 11.2000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-25X25X2', 'Tubo quadrado inox 25x25x2 AISI 304',  'm', 'tubo', 14.5000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-30X30X2', 'Tubo quadrado inox 30x30x2 AISI 304',  'm', 'tubo', 18.6000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-40X40X2', 'Tubo quadrado inox 40x40x2 AISI 304',  'm', 'tubo', 22.8000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-50X50X3', 'Tubo quadrado inox 50x50x3 AISI 304',  'm', 'tubo', 38.5000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-60X60X3', 'Tubo quadrado inox 60x60x3 AISI 304',  'm', 'tubo', 45.5000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-50X30X2', 'Tubo retangular inox 50x30x2 AISI 304','m', 'tubo', 24.8000, true, 'AISI304'),
+    ('MAT-TUBO-INOX304-80X40X3', 'Tubo retangular inox 80x40x3 AISI 304','m', 'tubo', 41.5000, true, 'AISI304'),
+    -- Tubos AL6060 (aluminio)
+    ('MAT-TUBO-ALU6060-20X20X2', 'Tubo quadrado aluminio 20x20x2 6060',  'm', 'tubo', 5.8000,  true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-25X25X2', 'Tubo quadrado aluminio 25x25x2 6060',  'm', 'tubo', 7.2000,  true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-30X30X2', 'Tubo quadrado aluminio 30x30x2 6060',  'm', 'tubo', 8.9000,  true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-40X40X2', 'Tubo quadrado aluminio 40x40x2 6060',  'm', 'tubo', 10.5000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-40X40X3', 'Tubo quadrado aluminio 40x40x3 6060',  'm', 'tubo', 14.5000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-60X60X3', 'Tubo quadrado aluminio 60x60x3 6060',  'm', 'tubo', 21.5000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-50X30X2', 'Tubo retangular aluminio 50x30x2 6060','m', 'tubo', 11.7000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-80X40X3', 'Tubo retangular aluminio 80x40x3 6060','m', 'tubo', 18.2000, true, 'AL6060'),
+    ('MAT-TUBO-ALU6060-100X50X4','Tubo retangular aluminio 100x50x4 6060','m','tubo', 35.8000, true, 'AL6060'),
     ('MAT-CHAPA-LASER-S235-3MM', 'Chapa laser 3mm S235JR', 'kg', 'chapa_laser', 1.5800, true, 'S235JR'),
     ('MAT-CHAPA-LASER-S235-5MM', 'Chapa laser 5mm S235JR', 'kg', 'chapa_laser', 1.6900, true, 'S235JR'),
     ('MAT-CHAPA-LASER-S355-6MM', 'Chapa laser 6mm S355JR', 'kg', 'chapa_laser', 1.9200, true, 'S355JR'),
@@ -142,7 +188,6 @@ INSERT INTO public.projeto (
     estado,
     data_inicio,
     data_entrega_prevista,
-    peso_total_kg,
     numero_pecas,
     complexidade,
     material_principal,
@@ -171,59 +216,49 @@ SELECT
         WHEN 4 THEN 'plataforma'
         ELSE 'escadaria'
     END,
+    -- Distribuicao alvo (gs % 100):
+    --   2%  cancelado
+    --   40% concluido    <- fatia grande para haver muitos historicos com realizado
+    --   20% em_execucao
+    --   13% aprovado
+    --   10% planeado
+    --   15% em_analise
     CASE
-        WHEN gs % 29 = 0 THEN 'cancelado'
-        WHEN gs % 7 = 0 THEN 'concluido'
-        WHEN gs % 5 = 0 THEN 'em_execucao'
-        WHEN gs % 4 = 0 THEN 'aprovado'
-        WHEN gs % 3 = 0 THEN 'planeado'
-        ELSE 'em_analise'
+        WHEN gs % 100 < 2  THEN 'cancelado'
+        WHEN gs % 100 < 42 THEN 'concluido'
+        WHEN gs % 100 < 62 THEN 'em_execucao'
+        WHEN gs % 100 < 75 THEN 'aprovado'
+        WHEN gs % 100 < 85 THEN 'planeado'
+        ELSE                    'em_analise'
     END,
     -- data_inicio: distribuida por 3 anos (2024-2026) coerentemente com o estado.
     -- Concluidos sao mais antigos (2024 - meio 2025), em_execucao em 2025-Q3 a meio 2026,
     -- aprovados/planeados/em_analise mais recentes (2026).
     CASE
-        WHEN gs % 29 = 0 THEN (DATE '2024-06-01' + ((gs * 7) % 730))   -- cancelado: pode ser de qualquer epoca
-        WHEN gs % 7 = 0 THEN (DATE '2024-01-01' + ((gs * 5) % 540))    -- concluido: 2024 a meio 2025
-        WHEN gs % 5 = 0 THEN (DATE '2025-06-01' + ((gs * 3) % 270))    -- em_execucao: 2025-Q3 a meio 2026
-        WHEN gs % 4 = 0 THEN (DATE '2025-12-01' + ((gs * 2) % 200))    -- aprovado: fim 2025 a meio 2026
-        WHEN gs % 3 = 0 THEN (DATE '2026-04-01' + ((gs * 4) % 200))    -- planeado: futuro proximo
-        ELSE (DATE '2026-06-01' + ((gs * 4) % 150))                    -- em_analise: mais recente
+        WHEN gs % 100 < 2  THEN (DATE '2024-06-01' + ((gs * 7) % 730))   -- cancelado: pode ser de qualquer epoca
+        WHEN gs % 100 < 42 THEN (DATE '2024-01-01' + ((gs * 5) % 540))   -- concluido: 2024 a meio 2025
+        WHEN gs % 100 < 62 THEN (DATE '2025-06-01' + ((gs * 3) % 270))   -- em_execucao: 2025-Q3 a meio 2026
+        WHEN gs % 100 < 75 THEN (DATE '2025-12-01' + ((gs * 2) % 200))   -- aprovado: fim 2025 a meio 2026
+        WHEN gs % 100 < 85 THEN (DATE '2026-04-01' + ((gs * 4) % 200))   -- planeado: futuro proximo
+        ELSE                    (DATE '2026-06-01' + ((gs * 4) % 150))   -- em_analise: mais recente
     END,
     CASE
-        WHEN gs % 29 = 0 THEN (DATE '2024-06-01' + ((gs * 7) % 730) + (25 + (gs % 45)))
-        WHEN gs % 7 = 0 THEN (DATE '2024-01-01' + ((gs * 5) % 540) + (35 + (gs % 55)))
-        WHEN gs % 5 = 0 THEN (DATE '2025-06-01' + ((gs * 3) % 270) + (55 + (gs % 70)))
-        WHEN gs % 4 = 0 THEN (DATE '2025-12-01' + ((gs * 2) % 200) + (45 + (gs % 65)))
-        WHEN gs % 3 = 0 THEN (DATE '2026-04-01' + ((gs * 4) % 200) + (45 + (gs % 70)))
-        ELSE (DATE '2026-06-01' + ((gs * 4) % 150) + (45 + (gs % 70)))
+        WHEN gs % 100 < 2  THEN (DATE '2024-06-01' + ((gs * 7) % 730) + (25 + (gs % 45)))
+        WHEN gs % 100 < 42 THEN (DATE '2024-01-01' + ((gs * 5) % 540) + (35 + (gs % 55)))
+        WHEN gs % 100 < 62 THEN (DATE '2025-06-01' + ((gs * 3) % 270) + (55 + (gs % 70)))
+        WHEN gs % 100 < 75 THEN (DATE '2025-12-01' + ((gs * 2) % 200) + (45 + (gs % 65)))
+        WHEN gs % 100 < 85 THEN (DATE '2026-04-01' + ((gs * 4) % 200) + (45 + (gs % 70)))
+        ELSE                    (DATE '2026-06-01' + ((gs * 4) % 150) + (45 + (gs % 70)))
     END,
-    round((
-        CASE
-            WHEN gs % 40 = 0 THEN 60000 + random() * 80000
-            WHEN gs % 25 = 0 THEN 35000 + random() * 55000
-            WHEN gs % 6 = 0 THEN 12000 + random() * 48000
-            WHEN gs % 6 = 2 THEN 6000 + random() * 30000
-            WHEN gs % 6 = 3 THEN 3500 + random() * 22000
-            WHEN gs % 6 = 4 THEN 2000 + random() * 16000
-            WHEN gs % 6 = 1 THEN 900 + random() * 9000
-            ELSE 700 + random() * 12000
-        END
-        * CASE
-            WHEN gs % 10 IN (1, 2) THEN 0.58
-            WHEN gs % 10 = 0 THEN 0.85
-            ELSE 1.00
-          END
-    )::numeric, 2),
     CASE
-        WHEN gs % 40 = 0 THEN 800 + (random() * 1600)::int
-        WHEN gs % 25 = 0 THEN 500 + (random() * 900)::int
-        WHEN gs % 6 = 0 THEN 220 + (random() * 900)::int
-        WHEN gs % 6 = 2 THEN 120 + (random() * 650)::int
-        WHEN gs % 6 = 3 THEN 80 + (random() * 500)::int
-        WHEN gs % 6 = 4 THEN 45 + (random() * 300)::int
-        WHEN gs % 6 = 1 THEN 25 + (random() * 180)::int
-        ELSE 20 + (random() * 220)::int
+        WHEN gs % 40 = 0 THEN 400 + (random() * 600)::int
+        WHEN gs % 25 = 0 THEN 250 + (random() * 450)::int
+        WHEN gs % 6 = 0 THEN 150 + (random() * 500)::int
+        WHEN gs % 6 = 2 THEN 90 + (random() * 380)::int
+        WHEN gs % 6 = 3 THEN 60 + (random() * 280)::int
+        WHEN gs % 6 = 4 THEN 35 + (random() * 200)::int
+        WHEN gs % 6 = 1 THEN 20 + (random() * 130)::int
+        ELSE 15 + (random() * 160)::int
     END,
     CASE
         WHEN gs % 4 = 0 THEN 'alta'
@@ -282,20 +317,64 @@ SELECT
         WHEN gs % 5 = 0 THEN 4
         ELSE 1
     END,
-    ((gs - 1) % 250) + 1
-FROM generate_series(1, 6700) AS gs;
+    ((gs - 1) % 350) + 1
+FROM generate_series(1, 5000) AS gs;
 
--- 6700 projetos x 3 versoes = 20100 orcamentos
-WITH versoes AS (
+-- 5000 projetos com versoes variaveis:
+--   50% so v1                  → 2500 orcamentos
+--   50% v1+v2                  → 5000 orcamentos
+--   total ~7500 orcamentos
+-- Reflete a realidade: nem todos os pedidos passam por uma revisao.
+--
+-- peso_por_projeto: peso_total_kg agora vive no orcamento (uma feature por
+-- versao), mas para coerencia entre versoes do mesmo projeto pre-computamos
+-- um valor unico por projeto e replicamo-lo em todas as suas versoes. AISI304
+-- e AL ficam mais leves (0.45/0.55) porque tem EUR/kg mais elevado e isso
+-- ajuda a manter o cap de 50.000 EUR.
+WITH peso_por_projeto AS (
+    SELECT
+        p.id_projeto,
+        round((
+            CASE
+                WHEN p.id_projeto % 40 = 0 THEN 9000 + random() * 7000   -- grandes (9-16k kg)
+                WHEN p.id_projeto % 25 = 0 THEN 5500 + random() * 6500   -- medio-grandes (5.5-12k)
+                WHEN p.id_projeto % 6 = 0 THEN 4000 + random() * 8000    -- medios (4-12k)
+                WHEN p.id_projeto % 6 = 2 THEN 2500 + random() * 5500    -- pequeno-medios (2.5-8k)
+                WHEN p.id_projeto % 6 = 3 THEN 1500 + random() * 4500    -- pequenos (1.5-6k)
+                WHEN p.id_projeto % 6 = 4 THEN 1000 + random() * 3000    -- pequenos (1-4k)
+                WHEN p.id_projeto % 6 = 1 THEN 500 + random() * 2500     -- minis (0.5-3k)
+                ELSE 400 + random() * 2000                               -- minis (0.4-2.4k)
+            END
+            * CASE
+                WHEN p.id_projeto % 10 IN (1, 2) THEN 0.55  -- AL e AISI ficam mais leves
+                WHEN p.id_projeto % 10 = 0 THEN 0.45        -- AISI ainda mais leve (preco/kg alto)
+                ELSE 1.00
+              END
+        )::numeric, 2) AS peso_total_kg
+    FROM public.projeto p
+),
+versoes AS (
     SELECT
         p.id_projeto,
         p.estado AS projeto_estado,
         p.tipologia,
         p.data_inicio,
+        pp.peso_total_kg,
         v.nr AS versao_num,
-        format('v%s', v.nr) AS versao
+        format('v%s', v.nr) AS versao,
+        -- Numero da ultima versao deste projeto. Usamos (id_projeto/10)%10
+        -- para descorrelacionar do material (que usa id_projeto%10), evitando
+        -- que AISI/AL fiquem so em projetos com 1 versao.
+        CASE
+            WHEN ((p.id_projeto / 10) % 10) IN (5, 6, 7, 8, 9) THEN 2  -- 50% projetos: 2 versoes
+            ELSE 1                                                      -- 50% projetos: so v1
+        END AS last_versao_num
     FROM public.projeto p
-    CROSS JOIN (VALUES (1), (2), (3)) AS v(nr)
+    JOIN peso_por_projeto pp ON pp.id_projeto = p.id_projeto
+    CROSS JOIN (VALUES (1), (2)) AS v(nr)
+    WHERE
+        v.nr = 1
+        OR (v.nr = 2 AND ((p.id_projeto / 10) % 10) IN (5, 6, 7, 8, 9))
 )
 INSERT INTO public.orcamento (
     id_projeto,
@@ -304,6 +383,7 @@ INSERT INTO public.orcamento (
     data_criacao,
     estado,
     margem_percentual,
+    peso_total_kg,
     observacoes
 )
 SELECT
@@ -311,23 +391,42 @@ SELECT
     versao,
     CASE
         WHEN versao_num = 1 THEN 3
-        WHEN versao_num = 2 THEN 2
-        ELSE 1
+        ELSE 2
     END,
     data_inicio::timestamp
-        - ((CASE versao_num WHEN 1 THEN 45 WHEN 2 THEN 25 ELSE 10 END) * INTERVAL '1 day')
+        - ((CASE versao_num WHEN 1 THEN 45 ELSE 25 END) * INTERVAL '1 day')
         - ((id_projeto % 12) * INTERVAL '1 day'),
+    -- Estado do orcamento conforme ciclo de vida do relatorio (3.5):
+    -- em_preparacao, em_revisao, validado, enviado, adjudicado, rejeitado,
+    -- em_execucao, concluido, arquivado.
+    --
+    -- Logica geral: a ULTIMA versao do projeto (versao_num = last_versao_num)
+    -- recebe o estado "vivo" coerente com o estado do projeto. As versoes
+    -- anteriores que foram superadas ficam 'rejeitado' (v1) ou 'em_revisao'
+    -- (penultima). Se o projeto so tem v1, essa unica versao recebe o estado
+    -- final diretamente.
     CASE
-        WHEN projeto_estado = 'cancelado' AND versao_num = 1 THEN 'rejeitado'
-        WHEN projeto_estado = 'cancelado' THEN 'cancelado'
-        WHEN projeto_estado IN ('concluido', 'em_execucao') AND versao_num < 3 THEN 'rejeitado'
-        WHEN projeto_estado IN ('concluido', 'em_execucao') THEN 'aprovado'
-        WHEN projeto_estado IN ('aprovado', 'planeado') AND versao_num = 1 THEN 'rejeitado'
-        WHEN projeto_estado IN ('aprovado', 'planeado') AND versao_num = 2 THEN 'em_revisao'
-        WHEN projeto_estado IN ('aprovado', 'planeado') THEN 'aprovado'
-        WHEN projeto_estado = 'em_analise' AND versao_num = 1 THEN 'rejeitado'
-        WHEN projeto_estado = 'em_analise' AND versao_num = 2 THEN 'em_revisao'
-        ELSE 'rascunho'
+        -- Projeto cancelado: ultima versao arquivada, anteriores rejeitadas
+        WHEN projeto_estado = 'cancelado' AND versao_num = last_versao_num THEN 'arquivado'
+        WHEN projeto_estado = 'cancelado' THEN 'rejeitado'
+        -- Projeto concluido: ultima versao concluida, anteriores rejeitadas
+        WHEN projeto_estado = 'concluido' AND versao_num = last_versao_num THEN 'concluido'
+        WHEN projeto_estado = 'concluido' THEN 'rejeitado'
+        -- Projeto em_execucao: ultima versao em producao, anteriores rejeitadas
+        WHEN projeto_estado = 'em_execucao' AND versao_num = last_versao_num THEN 'em_execucao'
+        WHEN projeto_estado = 'em_execucao' THEN 'rejeitado'
+        -- Projeto aprovado: cliente adjudicou ultima versao
+        WHEN projeto_estado = 'aprovado' AND versao_num = last_versao_num THEN 'adjudicado'
+        WHEN projeto_estado = 'aprovado' AND versao_num = last_versao_num - 1 AND last_versao_num > 1 THEN 'em_revisao'
+        WHEN projeto_estado = 'aprovado' THEN 'rejeitado'
+        -- Projeto planeado: ultima versao foi enviada ao cliente
+        WHEN projeto_estado = 'planeado' AND versao_num = last_versao_num THEN 'enviado'
+        WHEN projeto_estado = 'planeado' AND versao_num = last_versao_num - 1 AND last_versao_num > 1 THEN 'em_revisao'
+        WHEN projeto_estado = 'planeado' THEN 'rejeitado'
+        -- Projeto em_analise: ultima versao em preparacao
+        WHEN projeto_estado = 'em_analise' AND versao_num = last_versao_num THEN 'em_preparacao'
+        WHEN projeto_estado = 'em_analise' AND versao_num = last_versao_num - 1 AND last_versao_num > 1 THEN 'em_revisao'
+        ELSE 'rejeitado'
     END,
     -- Margem comercial varia por tipologia: trabalhos mais tecnicos (mezanino,
     -- plataforma) tipicamente tem margens maiores; trabalhos mais comoditizados
@@ -343,6 +442,7 @@ SELECT
             ELSE 13 + random() * 12
         END
     )::numeric, 2),
+    peso_total_kg,
     format('Orcamento %s do projeto %s - estrutura metalica.', versao, id_projeto)
 FROM versoes
 ORDER BY id_projeto, versao_num;
@@ -414,19 +514,63 @@ mat_base AS (
             ELSE round((10 + random() * 140)::numeric, 2)
         END AS quantidade,
         CASE m.codigo
-            WHEN 'MAT-TUBO-S235-30X30X2' THEN 1.76
-            WHEN 'MAT-TUBO-S235-40X40X2' THEN 2.39
-            WHEN 'MAT-TUBO-S235-60X40X3' THEN 4.43
-            WHEN 'MAT-TUBO-S355-50X50X3' THEN 4.43
-            WHEN 'MAT-TUBO-S355-80X40X3' THEN 5.20
-            WHEN 'MAT-TUBO-S355-100X50X4' THEN 8.78
-            WHEN 'MAT-TUBO-S355-RD48X3' THEN 3.56
+            -- Tubos S235JR quadrados
+            WHEN 'MAT-TUBO-S235-20X20X2'   THEN 1.10
+            WHEN 'MAT-TUBO-S235-25X25X2'   THEN 1.41
+            WHEN 'MAT-TUBO-S235-30X30X2'   THEN 1.76
+            WHEN 'MAT-TUBO-S235-35X35X2'   THEN 2.07
+            WHEN 'MAT-TUBO-S235-40X40X2'   THEN 2.39
+            WHEN 'MAT-TUBO-S235-40X40X3'   THEN 3.41
+            WHEN 'MAT-TUBO-S235-45X45X3'   THEN 3.88
+            WHEN 'MAT-TUBO-S235-50X50X3'   THEN 4.43
+            WHEN 'MAT-TUBO-S235-60X60X3'   THEN 5.39
+            WHEN 'MAT-TUBO-S235-70X70X4'   THEN 8.28
+            WHEN 'MAT-TUBO-S235-80X80X4'   THEN 9.54
+            WHEN 'MAT-TUBO-S235-100X100X5' THEN 14.93
+            -- Tubos S235JR retangulares
+            WHEN 'MAT-TUBO-S235-50X30X2'   THEN 2.39
+            WHEN 'MAT-TUBO-S235-60X40X3'   THEN 4.43
+            WHEN 'MAT-TUBO-S235-80X40X3'   THEN 5.20
+            WHEN 'MAT-TUBO-S235-100X50X4'  THEN 8.78
+            WHEN 'MAT-TUBO-S235-120X60X4'  THEN 10.80
+            -- Tubos S235JR redondos
+            WHEN 'MAT-TUBO-S235-RD21X2'    THEN 0.95
+            WHEN 'MAT-TUBO-S235-RD27X3'    THEN 1.76
+            WHEN 'MAT-TUBO-S235-RD33X3'    THEN 1.99
+            -- Tubos S355JR
+            WHEN 'MAT-TUBO-S355-35X35X3'   THEN 3.05
+            WHEN 'MAT-TUBO-S355-45X45X4'   THEN 4.99
+            WHEN 'MAT-TUBO-S355-50X50X3'   THEN 4.43
+            WHEN 'MAT-TUBO-S355-60X60X3'   THEN 5.39
+            WHEN 'MAT-TUBO-S355-70X70X4'   THEN 8.28
+            WHEN 'MAT-TUBO-S355-80X80X5'   THEN 11.65
+            WHEN 'MAT-TUBO-S355-100X100X6' THEN 17.66
+            WHEN 'MAT-TUBO-S355-80X40X3'   THEN 5.20
+            WHEN 'MAT-TUBO-S355-100X50X4'  THEN 8.78
+            WHEN 'MAT-TUBO-S355-120X80X5'  THEN 14.79
+            WHEN 'MAT-TUBO-S355-150X100X6' THEN 22.51
+            WHEN 'MAT-TUBO-S355-RD48X3'    THEN 3.56
+            WHEN 'MAT-TUBO-S355-RD60X3'    THEN 5.04
+            WHEN 'MAT-TUBO-S355-RD89X4'    THEN 8.38
+            -- Tubos AISI304 (inox tem densidade ~7.93, similar ao aco para esta seccao)
+            WHEN 'MAT-TUBO-INOX304-20X20X2' THEN 1.10
+            WHEN 'MAT-TUBO-INOX304-25X25X2' THEN 1.41
             WHEN 'MAT-TUBO-INOX304-30X30X2' THEN 1.77
+            WHEN 'MAT-TUBO-INOX304-40X40X2' THEN 2.39
+            WHEN 'MAT-TUBO-INOX304-50X50X3' THEN 4.43
+            WHEN 'MAT-TUBO-INOX304-60X60X3' THEN 5.39
             WHEN 'MAT-TUBO-INOX304-50X30X2' THEN 2.37
             WHEN 'MAT-TUBO-INOX304-80X40X3' THEN 5.34
-            WHEN 'MAT-TUBO-ALU6060-30X30X2' THEN 0.60
-            WHEN 'MAT-TUBO-ALU6060-50X30X2' THEN 0.80
-            WHEN 'MAT-TUBO-ALU6060-80X40X3' THEN 1.85
+            -- Tubos AL6060 (aluminio densidade ~2.70 — ~1/3 do aco)
+            WHEN 'MAT-TUBO-ALU6060-20X20X2'  THEN 0.38
+            WHEN 'MAT-TUBO-ALU6060-25X25X2'  THEN 0.49
+            WHEN 'MAT-TUBO-ALU6060-30X30X2'  THEN 0.60
+            WHEN 'MAT-TUBO-ALU6060-40X40X2'  THEN 0.81
+            WHEN 'MAT-TUBO-ALU6060-40X40X3'  THEN 1.18
+            WHEN 'MAT-TUBO-ALU6060-60X60X3'  THEN 1.86
+            WHEN 'MAT-TUBO-ALU6060-50X30X2'  THEN 0.80
+            WHEN 'MAT-TUBO-ALU6060-80X40X3'  THEN 1.85
+            WHEN 'MAT-TUBO-ALU6060-100X50X4' THEN 3.13
             ELSE 1.00
         END AS kg_por_m,
         round((random() * 5.5)::numeric, 2) AS desperdicio_percent
@@ -614,12 +758,13 @@ ORDER BY id_orcamento, id_servico;
 --   * compl_factor: 1.00 a 1.90 (afeta horas, logo custo de operacao)
 --   * tipo_factor: 0.85 a 1.05 (afeta materiais conforme tipologia)
 -- ===========================================================================
-CREATE TEMP TABLE tmp_orcamento_target ON COMMIT DROP AS
+-- Targets brutos por categoria (antes do cap final de 50k EUR)
+CREATE TEMP TABLE tmp_orcamento_target_raw ON COMMIT DROP AS
 SELECT
     o.id_orcamento,
     -- Materiais: peso x EUR/kg(material) x tipologia x ruido
     GREATEST(500::numeric,
-        round((p.peso_total_kg
+        round((o.peso_total_kg
             * CASE p.material_principal
                 WHEN 'AISI304' THEN 5.80
                 WHEN 'AL5754'  THEN 4.40
@@ -643,7 +788,7 @@ SELECT
     -- Operacoes: peso/escala x complexidade x processo_corte x ruido
     -- (peso/6 ~ EUR-equivalente; depois aplicam-se multiplicadores)
     GREATEST(300::numeric,
-        round((p.peso_total_kg / 6.0
+        round((o.peso_total_kg / 6.0
             * CASE p.complexidade
                 WHEN 'alta'  THEN 1.90
                 WHEN 'media' THEN 1.40
@@ -661,7 +806,7 @@ SELECT
     ) AS target_operacoes,
     -- Servicos: peso x EUR/kg(tratamento) x ruido
     GREATEST(200::numeric,
-        round((p.peso_total_kg
+        round((o.peso_total_kg
             * CASE p.tratamento_superficie
                 WHEN 'galvanizacao'   THEN 0.80
                 WHEN 'pintura_liquida' THEN 0.62
@@ -676,6 +821,41 @@ SELECT
     ) AS target_servicos
 FROM public.orcamento o
 JOIN public.projeto p ON p.id_projeto = o.id_projeto;
+
+-- Cap final: nenhum orcamento ultrapassa 50.000 EUR. Quando o total excede o
+-- cap, escala-se proporcionalmente os 3 componentes para manter a relacao
+-- materiais/operacoes/servicos. Aplica-se um valor entre 40k e 49.5k para
+-- evitar uma "parede" estatistica em exatamente 50k.
+CREATE TEMP TABLE tmp_orcamento_target ON COMMIT DROP AS
+WITH com_fator AS (
+    SELECT
+        id_orcamento,
+        target_materiais,
+        target_operacoes,
+        target_servicos,
+        (target_materiais + target_operacoes + target_servicos) AS total_raw,
+        -- Fator de cap: aplica-se SEM excecao mas so reduz se total_raw > 50k.
+        -- O alvo capado fica entre 40k e 49.5k para evitar parede em 50k.
+        (40000 + random() * 9500) AS total_capped
+    FROM tmp_orcamento_target_raw
+),
+com_escala AS (
+    SELECT
+        id_orcamento,
+        target_materiais,
+        target_operacoes,
+        target_servicos,
+        CASE WHEN total_raw > 50000
+             THEN total_capped / total_raw
+             ELSE 1::numeric END AS fator_cap
+    FROM com_fator
+)
+SELECT
+    id_orcamento,
+    round((target_materiais * fator_cap)::numeric, 2) AS target_materiais,
+    round((target_operacoes * fator_cap)::numeric, 2) AS target_operacoes,
+    round((target_servicos * fator_cap)::numeric, 2) AS target_servicos
+FROM com_escala;
 
 -- Fatores de escala separados por categoria (materiais / operacoes / servicos).
 -- Cada categoria escala as suas linhas independentemente para o seu target,
@@ -769,11 +949,9 @@ SET
         ) * (1 + COALESCE(o.margem_percentual, 0) / 100.0)
     )::numeric, 2);
 
--- (Removido) Anteriormente sobrescrevia peso_total_kg do projeto a partir das
--- linhas de material. Foi removido porque o peso_total_kg deve ser uma feature
--- de INPUT (introduzida no projeto), e nao um valor derivado das linhas. Caso
--- contrario o ML treina sobre uma variavel circular (peso definido a partir
--- do que ja foi gerado para o orcamento), perdendo o sinal causal.
+-- peso_total_kg do orcamento e gerado no INSERT (CTE peso_por_projeto), nao
+-- derivado das linhas de material. Mantemos uma feature de INPUT estavel para
+-- o ML em vez de uma variavel circular calculada a partir do proprio orcamento.
 
 -- Realizados de material.
 -- O f_qtd e modulado por um shock_factor por projeto que simula imprevistos:
@@ -799,7 +977,7 @@ WITH rm_base AS (
     FROM public.detalhe_material_orcamento d
     JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
     JOIN public.projeto p ON p.id_projeto = o.id_projeto
-    WHERE o.estado = 'aprovado'
+    WHERE o.estado IN ('em_execucao', 'concluido')
       AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_material (
@@ -845,7 +1023,7 @@ WITH ro_base AS (
     FROM public.detalhe_operacao_orcamento d
     JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
     JOIN public.projeto p ON p.id_projeto = o.id_projeto
-    WHERE o.estado = 'aprovado'
+    WHERE o.estado IN ('em_execucao', 'concluido')
       AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_operacao (
@@ -886,7 +1064,7 @@ WITH rs_base AS (
     FROM public.detalhe_servico_orcamento d
     JOIN public.orcamento o ON o.id_orcamento = d.id_orcamento
     JOIN public.projeto p ON p.id_projeto = o.id_projeto
-    WHERE o.estado = 'aprovado'
+    WHERE o.estado IN ('em_execucao', 'concluido')
       AND p.estado IN ('em_execucao', 'concluido')
 )
 INSERT INTO public.realizado_servico (
@@ -927,11 +1105,11 @@ SELECT
     round((o.custo_total_orcado * (0.96 + random() * 0.12))::numeric, 2),
     round((o.horas_totais_previstas * (0.92 + random() * 0.18))::numeric, 2),
     round((2 + random() * 12)::numeric, 2),
-    format('peso=%s; pecas=%s; processo=%s', p.peso_total_kg, p.numero_pecas, p.processo_corte),
+    format('peso=%s; pecas=%s; processo=%s', o.peso_total_kg, p.numero_pecas, p.processo_corte),
     'Previsao automatica para analise de desvio.'
 FROM public.orcamento o
 JOIN public.projeto p ON p.id_projeto = o.id_projeto
-WHERE o.estado <> 'cancelado'
+WHERE o.estado NOT IN ('rejeitado', 'arquivado')
   AND random() < 0.80;
 
 -- Validacoes de integridade pedidas
@@ -939,11 +1117,11 @@ DO $$
 DECLARE
     v_total_orc integer;
     v_min_linhas integer;
+    v_orc_max numeric;
     v_orc_5k integer;
-    v_orc_20k integer;
-    v_orc_50k integer;
-    v_orc_100k integer;
-    v_orc_250k integer;
+    v_orc_15k integer;
+    v_orc_30k integer;
+    v_orc_45k integer;
     v_orc_cancelado_fora_projeto integer;
     v_projetos_ativos_sem_aprovado integer;
     v_projetos_analise_com_aprovado integer;
@@ -956,13 +1134,14 @@ DECLARE
 BEGIN
     SELECT count(*) INTO v_total_orc FROM public.orcamento;
 
+    -- Distribuicao de custos: novo cap e 50.000 EUR.
     SELECT
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 4500 AND 6500),
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 17000 AND 23000),
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 43000 AND 57000),
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 90000 AND 120000),
-        count(*) FILTER (WHERE custo_total_orcado BETWEEN 200000 AND 320000)
-    INTO v_orc_5k, v_orc_20k, v_orc_50k, v_orc_100k, v_orc_250k
+        max(custo_total_orcado),
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 1 AND 5000),
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 5000 AND 15000),
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 15000 AND 30000),
+        count(*) FILTER (WHERE custo_total_orcado BETWEEN 30000 AND 50000)
+    INTO v_orc_max, v_orc_5k, v_orc_15k, v_orc_30k, v_orc_45k
     FROM public.orcamento;
 
     SELECT min(total_linhas)
@@ -989,13 +1168,19 @@ BEGIN
         ) s ON s.id_orcamento = o.id_orcamento
     ) t;
 
+    -- v_orc_cancelado_fora_projeto: orcamentos arquivados que nao estao
+    -- em projetos cancelados (arquivado e o estado terminal usado para
+    -- versoes superseded em projetos cancelados).
     SELECT count(*)
     INTO v_orc_cancelado_fora_projeto
     FROM public.orcamento o
     JOIN public.projeto p ON p.id_projeto = o.id_projeto
-    WHERE o.estado = 'cancelado'
+    WHERE o.estado = 'arquivado'
       AND p.estado <> 'cancelado';
 
+    -- Projetos ativos (planeado/aprovado/em_execucao/concluido) tem de ter
+    -- pelo menos um orcamento que tenha avancado (enviado/adjudicado/
+    -- em_execucao/concluido), ou seja, passou validacao interna.
     SELECT count(*)
     INTO v_projetos_ativos_sem_aprovado
     FROM public.projeto p
@@ -1004,9 +1189,12 @@ BEGIN
           SELECT 1
           FROM public.orcamento o
           WHERE o.id_projeto = p.id_projeto
-            AND o.estado = 'aprovado'
+            AND o.estado IN ('enviado', 'adjudicado', 'em_execucao', 'concluido')
       );
 
+    -- Projetos em analise NAO devem ter orcamentos ja avancados (validado/
+    -- enviado/adjudicado/em_execucao/concluido) — esses estados implicam
+    -- que o orcamento ja saiu da fase de analise.
     SELECT count(*)
     INTO v_projetos_analise_com_aprovado
     FROM public.projeto p
@@ -1015,7 +1203,7 @@ BEGIN
           SELECT 1
           FROM public.orcamento o
           WHERE o.id_projeto = p.id_projeto
-            AND o.estado = 'aprovado'
+            AND o.estado IN ('validado', 'enviado', 'adjudicado', 'em_execucao', 'concluido')
       );
 
     SELECT
@@ -1030,8 +1218,8 @@ BEGIN
     v_pct_aluminio := round((v_orc_aluminio::numeric / NULLIF(v_total_orc, 0)) * 100, 2);
     v_pct_inox := round((v_orc_inox::numeric / NULLIF(v_total_orc, 0)) * 100, 2);
 
-    IF v_total_orc < 20000 THEN
-        RAISE EXCEPTION 'Seed invalida: total orcamentos = % (esperado >= 20000)', v_total_orc;
+    IF v_total_orc < 7000 THEN
+        RAISE EXCEPTION 'Seed invalida: total orcamentos = % (esperado >= 7000)', v_total_orc;
     END IF;
 
     IF v_min_linhas < 15 THEN
@@ -1039,15 +1227,15 @@ BEGIN
     END IF;
 
     IF v_orc_cancelado_fora_projeto > 0 THEN
-        RAISE EXCEPTION 'Seed invalida: existem % orcamentos cancelados fora de projetos cancelados', v_orc_cancelado_fora_projeto;
+        RAISE EXCEPTION 'Seed invalida: existem % orcamentos arquivados fora de projetos cancelados', v_orc_cancelado_fora_projeto;
     END IF;
 
     IF v_projetos_ativos_sem_aprovado > 0 THEN
-        RAISE EXCEPTION 'Seed invalida: existem % projetos ativos sem orcamento aprovado', v_projetos_ativos_sem_aprovado;
+        RAISE EXCEPTION 'Seed invalida: existem % projetos ativos sem orcamento avancado (enviado/adjudicado/em_execucao/concluido)', v_projetos_ativos_sem_aprovado;
     END IF;
 
     IF v_projetos_analise_com_aprovado > 0 THEN
-        RAISE EXCEPTION 'Seed invalida: existem % projetos em analise com orcamento aprovado', v_projetos_analise_com_aprovado;
+        RAISE EXCEPTION 'Seed invalida: existem % projetos em_analise com orcamento ja avancado (validado/enviado/adjudicado/em_execucao/concluido)', v_projetos_analise_com_aprovado;
     END IF;
 
     IF v_pct_aco NOT BETWEEN 69 AND 71
@@ -1058,10 +1246,15 @@ BEGIN
             v_pct_aco, v_pct_aluminio, v_pct_inox;
     END IF;
 
-    IF v_orc_5k < 40 OR v_orc_20k < 40 OR v_orc_50k < 40 OR v_orc_100k < 40 OR v_orc_250k < 40 THEN
+    -- Cap de custo deve ser respeitado: nenhum orcamento acima de 50.000 EUR.
+    IF v_orc_max > 50000 THEN
+        RAISE EXCEPTION 'Seed invalida: orcamento com custo % EUR (esperado <= 50.000)', v_orc_max;
+    END IF;
+
+    IF v_orc_5k < 100 OR v_orc_15k < 100 OR v_orc_30k < 100 OR v_orc_45k < 100 THEN
         RAISE NOTICE
-            'Distribuicao abaixo do alvo (minimo 40 por faixa): 5k=% 20k=% 50k=% 100k=% 250k=%',
-            v_orc_5k, v_orc_20k, v_orc_50k, v_orc_100k, v_orc_250k;
+            'Distribuicao abaixo do alvo (minimo 100 por faixa): 0-5k=% 5-15k=% 15-30k=% 30-50k=% (max=%)',
+            v_orc_5k, v_orc_15k, v_orc_30k, v_orc_45k, v_orc_max;
     END IF;
 END $$;
 
@@ -1131,16 +1324,30 @@ JOIN public.projeto p ON p.id_projeto = o.id_projeto
 GROUP BY p.tratamento_superficie
 ORDER BY p.tratamento_superficie;
 
+-- Distribuicao de custos por faixa (cap de 50.000 EUR aplicado).
 SELECT
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 4500 AND 6500) AS orcamentos_faixa_5k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 17000 AND 23000) AS orcamentos_faixa_20k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 43000 AND 57000) AS orcamentos_faixa_50k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 90000 AND 120000) AS orcamentos_faixa_100k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 200000 AND 320000) AS orcamentos_faixa_250k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 5000 AND 75000) AS orcamentos_entre_5k_75k,
-    count(*) FILTER (WHERE custo_total_orcado BETWEEN 75000 AND 200000) AS orcamentos_entre_75k_200k,
-    count(*) FILTER (WHERE custo_total_orcado > 200000) AS orcamentos_acima_200k
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 0 AND 5000)      AS faixa_ate_5k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 5000 AND 15000)  AS faixa_5k_15k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 15000 AND 30000) AS faixa_15k_30k,
+    count(*) FILTER (WHERE custo_total_orcado BETWEEN 30000 AND 50000) AS faixa_30k_50k,
+    count(*) FILTER (WHERE custo_total_orcado > 50000)                 AS faixa_acima_50k_INVALIDO,
+    round(min(custo_total_orcado)::numeric, 2) AS custo_min,
+    round(avg(custo_total_orcado)::numeric, 2) AS custo_medio,
+    round(max(custo_total_orcado)::numeric, 2) AS custo_max
 FROM public.orcamento;
+
+-- Distribuicao de versoes por projeto (alvo: 50/50 entre v1 e v1+v2)
+SELECT
+    versoes_por_projeto,
+    count(*) AS projetos,
+    round(count(*) * 100.0 / sum(count(*)) OVER (), 1) AS pct
+FROM (
+    SELECT id_projeto, count(*) AS versoes_por_projeto
+    FROM public.orcamento
+    GROUP BY id_projeto
+) t
+GROUP BY versoes_por_projeto
+ORDER BY versoes_por_projeto;
 
 -- Diagnostico de realismo por unidade de material
 SELECT
@@ -1161,7 +1368,7 @@ JOIN public.material m ON m.id_material = dm.id_material
 GROUP BY m.unidade
 ORDER BY m.unidade;
 
--- Diagnostico de relacao peso/custo ao nivel do projeto
+-- Diagnostico de relacao peso/custo ao nivel do orcamento (v1)
 SELECT
     round(min(ratio_kg_por_euro)::numeric, 4) AS min_kg_por_euro,
     round(percentile_cont(0.25) WITHIN GROUP (ORDER BY ratio_kg_por_euro)::numeric, 4) AS p25_kg_por_euro,
@@ -1170,13 +1377,11 @@ SELECT
     round(max(ratio_kg_por_euro)::numeric, 4) AS max_kg_por_euro
 FROM (
     SELECT
-        p.id_projeto,
+        o.id_orcamento,
         CASE
-            WHEN o.custo_total_orcado > 0 THEN p.peso_total_kg / o.custo_total_orcado
+            WHEN o.custo_total_orcado > 0 THEN o.peso_total_kg / o.custo_total_orcado
             ELSE NULL
         END AS ratio_kg_por_euro
-    FROM public.projeto p
-    JOIN public.orcamento o
-        ON o.id_projeto = p.id_projeto
-       AND o.versao = 'v1'
+    FROM public.orcamento o
+    WHERE o.versao = 'v1'
 ) t;

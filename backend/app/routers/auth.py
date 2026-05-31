@@ -9,7 +9,18 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.dependencies import get_current_user, get_db
 from app.models.utilizador import Utilizador
-from app.schemas.auth import LoginRequest, TokenResponse, UtilizadorMe
+from app.schemas.auth import (
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetGenericResponse,
+    PasswordResetRequest,
+    TokenResponse,
+    UtilizadorMe,
+)
+from app.services.password_reset_service import (
+    confirm_reset,
+    create_reset_token,
+)
 
 router = APIRouter()
 
@@ -105,3 +116,40 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UtilizadorMe)
 def me(current_user: Utilizador = Depends(get_current_user)):
     return current_user
+
+
+@router.post(
+    "/password-reset/request",
+    response_model=PasswordResetGenericResponse,
+)
+def password_reset_request(
+    payload: PasswordResetRequest,
+    db: Session = Depends(get_db),
+):
+    # Politica anti-enumeracao: a resposta e sempre a mesma, exista ou nao
+    # um utilizador associado ao email. O envio (simulado) so ocorre quando
+    # o utilizador existe e esta ativo.
+    create_reset_token(db, payload.email)
+    return PasswordResetGenericResponse(
+        mensagem=(
+            "Se existir uma conta associada a este email, "
+            "foi enviada uma mensagem com instrucoes."
+        )
+    )
+
+
+@router.post(
+    "/password-reset/confirm",
+    response_model=PasswordResetGenericResponse,
+)
+def password_reset_confirm(
+    payload: PasswordResetConfirm,
+    db: Session = Depends(get_db),
+):
+    ok = confirm_reset(db, payload.token, payload.nova_password)
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token invalido ou expirado",
+        )
+    return PasswordResetGenericResponse(mensagem="Password atualizada.")
