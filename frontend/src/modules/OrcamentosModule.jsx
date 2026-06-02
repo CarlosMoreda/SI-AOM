@@ -48,6 +48,7 @@ const EMPTY_DRAFT_MAT_FORM = {
   id_material: '',
   quantidade: '',
   peso_kg: '',
+  area_m2: '',
   desperdicio_percent: '0',
   observacoes: '',
 }
@@ -104,7 +105,7 @@ export default function OrcamentosModule({ token }) {
   const [loadingLinhas, setLoadingLinhas] = useState(false)
 
   // Add-line forms
-  const [addMatForm, setAddMatForm] = useState({ id_material: '', quantidade: '', peso_kg: '', desperdicio_percent: '0', observacoes: '' })
+  const [addMatForm, setAddMatForm] = useState({ id_material: '', quantidade: '', peso_kg: '', area_m2: '', desperdicio_percent: '0', observacoes: '' })
   const [addOpForm, setAddOpForm] = useState({ id_operacao: '', horas: '', tempo_setup_h: '0', observacoes: '' })
   const [addSvcForm, setAddSvcForm] = useState({ id_servico: '', quantidade: '', observacoes: '' })
 
@@ -238,17 +239,6 @@ export default function OrcamentosModule({ token }) {
     setError('')
   }
 
-  function openCreateFromScratch() {
-    setEditingOrcId(null)
-    setAutoOpenAfterCreate(true)
-    setCreateWithLines(true)
-    resetDraftLines()
-    setOrcForm(buildCreateForm(filterProjectId))
-    setShowOrcForm(true)
-    setSuccess('')
-    setError('')
-  }
-
   function openEdit(orc, e) {
     e.stopPropagation()
     setEditingOrcId(orc.id_orcamento)
@@ -284,11 +274,11 @@ export default function OrcamentosModule({ token }) {
   }
 
   function handleAddDraftMaterial() {
-
     const idMaterial = Number(draftMatForm.id_material)
     const quantidade = Number(draftMatForm.quantidade)
     const desperdicioPercent = Number(draftMatForm.desperdicio_percent || 0)
     const pesoKg = draftMatForm.peso_kg !== '' ? Number(draftMatForm.peso_kg) : null
+    const areaM2 = draftMatForm.area_m2 !== '' ? Number(draftMatForm.area_m2) : null
 
     if (!idMaterial || !Number.isFinite(quantidade) || quantidade <= 0) {
       setError('Preencha material e quantidade validos.')
@@ -302,6 +292,7 @@ export default function OrcamentosModule({ token }) {
         id_material: idMaterial,
         quantidade,
         peso_kg: pesoKg !== null && Number.isFinite(pesoKg) ? pesoKg : null,
+        area_m2: areaM2 !== null && Number.isFinite(areaM2) ? areaM2 : null,
         desperdicio_percent: Number.isFinite(desperdicioPercent) ? desperdicioPercent : 0,
         observacoes: draftMatForm.observacoes || null,
         label: material ? `${material.codigo} - ${material.nome}` : String(idMaterial),
@@ -312,7 +303,6 @@ export default function OrcamentosModule({ token }) {
   }
 
   function handleAddDraftOperacao() {
-
     const idOperacao = Number(draftOpForm.id_operacao)
     const horas = Number(draftOpForm.horas)
     const tempoSetup = Number(draftOpForm.tempo_setup_h || 0)
@@ -338,7 +328,6 @@ export default function OrcamentosModule({ token }) {
   }
 
   function handleAddDraftServico() {
-
     const idServico = Number(draftSvcForm.id_servico)
     const quantidade = Number(draftSvcForm.quantidade)
 
@@ -379,6 +368,7 @@ export default function OrcamentosModule({ token }) {
         id_material: linha.id_material,
         quantidade: linha.quantidade,
         peso_kg: linha.peso_kg,
+        area_m2: linha.area_m2,
         desperdicio_percent: linha.desperdicio_percent,
         observacoes: linha.observacoes,
       })
@@ -521,10 +511,11 @@ export default function OrcamentosModule({ token }) {
         id_material: Number(addMatForm.id_material),
         quantidade: Number(addMatForm.quantidade),
         peso_kg: addMatForm.peso_kg !== '' ? Number(addMatForm.peso_kg) : null,
+        area_m2: addMatForm.area_m2 !== '' ? Number(addMatForm.area_m2) : null,
         desperdicio_percent: Number(addMatForm.desperdicio_percent || 0),
         observacoes: addMatForm.observacoes || null,
       })
-      setAddMatForm({ id_material: '', quantidade: '', peso_kg: '', desperdicio_percent: '0', observacoes: '' })
+      setAddMatForm({ id_material: '', quantidade: '', peso_kg: '', area_m2: '', desperdicio_percent: '0', observacoes: '' })
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -627,9 +618,6 @@ export default function OrcamentosModule({ token }) {
           <div className="module-inline-actions">
             <button type="button" onClick={openCreate}>
               + Novo orcamento
-            </button>
-            <button type="button" className="btn-secondary" onClick={openCreateFromScratch}>
-              + Novo do zero
             </button>
           </div>
         </div>

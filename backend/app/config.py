@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480  # 8 horas
     allow_plaintext_password_fallback: bool = False
+    # Limiar (em %) acima do qual um desvio orcado-vs-realizado gera alerta.
+    # Aplicado a cada categoria (materiais, operacoes, servicos, total, horas).
+    limiar_desvio_default_percent: float = 10.0
     cors_origins: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

@@ -1,8 +1,10 @@
 from decimal import Decimal, ROUND_HALF_UP
+from typing import Iterable
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models.detalhe_material_orcamento import DetalheMaterialOrcamento
 from app.models.detalhe_operacao_orcamento import DetalheOperacaoOrcamento
 from app.models.detalhe_servico_orcamento import DetalheServicoOrcamento
@@ -11,6 +13,7 @@ from app.models.realizado_material import RealizadoMaterial
 from app.models.realizado_operacao import RealizadoOperacao
 from app.models.realizado_servico import RealizadoServico
 from app.schemas.comparacao import (
+    AlertaDesvioResponse,
     ComparacaoBlocoResponse,
     ComparacaoHorasResponse,
     ComparacaoOrcamentoResponse,
@@ -69,6 +72,41 @@ def _horas(previstas: Decimal, reais: Decimal) -> ComparacaoHorasResponse:
     )
 
 
+def _construir_alertas(
+    blocos: Iterable[tuple[str, Decimal, Decimal, Decimal]],
+    limiar_percent: Decimal,
+) -> list[AlertaDesvioResponse]:
+    """Gera um alerta por categoria cujo desvio (em modulo) excede o limiar.
+
+    blocos: iteravel de (categoria, real, desvio_abs, desvio_percent).
+    Quando `real == 0` a categoria e ignorada porque significa que ainda nao
+    foi registado realizado para essa categoria (evita falso positivo de
+    -100% quando a execucao ainda nao comecou).
+
+    Severidade fica 'alta' quando o desvio passa o dobro do limiar.
+    """
+    alertas: list[AlertaDesvioResponse] = []
+    limiar_alta = limiar_percent * Decimal("2")
+
+    for categoria, real, desvio_abs, desvio_percent in blocos:
+        # Sem realizado registado nesta categoria -> nao gera alerta.
+        if real == 0:
+            continue
+        if abs(desvio_percent) < limiar_percent:
+            continue
+        severidade = "alta" if abs(desvio_percent) >= limiar_alta else "media"
+        alertas.append(
+            AlertaDesvioResponse(
+                categoria=categoria,
+                desvio_abs=desvio_abs,
+                desvio_percent=desvio_percent,
+                limiar_aplicado=limiar_percent,
+                severidade=severidade,
+            )
+        )
+    return alertas
+
+
 def obter_comparacao_orcamento(db: Session, id_orcamento: int) -> ComparacaoOrcamentoResponse | None:
     orcamento = db.get(Orcamento, id_orcamento)
     if not orcamento:
@@ -122,11 +160,31 @@ def obter_comparacao_orcamento(db: Session, id_orcamento: int) -> ComparacaoOrca
 
     total_real = _q2(real_materiais + real_operacoes + real_servicos)
 
+    materiais = _bloco(orcamento.custo_total_materiais, real_materiais)
+    operacoes = _bloco(orcamento.custo_total_operacoes, real_operacoes)
+    servicos = _bloco(orcamento.custo_total_servicos, real_servicos)
+    total = _bloco(orcamento.custo_total_orcado, total_real)
+    horas = _horas(orcamento.horas_totais_previstas, horas_reais)
+
+    limiar = _q2(_to_decimal(settings.limiar_desvio_default_percent))
+    alertas = _construir_alertas(
+        [
+            ("materiais", materiais.real, materiais.desvio_abs, materiais.desvio_percent),
+            ("operacoes", operacoes.real, operacoes.desvio_abs, operacoes.desvio_percent),
+            ("servicos", servicos.real, servicos.desvio_abs, servicos.desvio_percent),
+            ("total", total.real, total.desvio_abs, total.desvio_percent),
+            ("horas", horas.reais, horas.desvio_abs, horas.desvio_percent),
+        ],
+        limiar_percent=limiar,
+    )
+
     return ComparacaoOrcamentoResponse(
         id_orcamento=id_orcamento,
-        materiais=_bloco(orcamento.custo_total_materiais, real_materiais),
-        operacoes=_bloco(orcamento.custo_total_operacoes, real_operacoes),
-        servicos=_bloco(orcamento.custo_total_servicos, real_servicos),
-        total=_bloco(orcamento.custo_total_orcado, total_real),
-        horas=_horas(orcamento.horas_totais_previstas, horas_reais),
+        materiais=materiais,
+        operacoes=operacoes,
+        servicos=servicos,
+        total=total,
+        horas=horas,
+        limiar_aplicado_percent=limiar,
+        alertas=alertas,
     )

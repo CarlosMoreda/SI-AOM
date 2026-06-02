@@ -10,6 +10,7 @@ from app.routers import (
     auth,
     clientes,
     comparacao,
+    dashboard,
     detalhes_orcamento,
     materiais,
     ml,
@@ -59,6 +60,7 @@ app.include_router(
     tags=["Comparacao"],
 )
 app.include_router(ml.router, prefix="/ml", tags=["ML"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 
 
 @app.get("/")

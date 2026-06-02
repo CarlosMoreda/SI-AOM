@@ -49,6 +49,7 @@ SELECT
     p.tipologia,
     p.complexidade,
     o.peso_total_kg,
+    o.area_total_m2,
     p.numero_pecas,
     p.material_principal,
     p.tratamento_superficie,

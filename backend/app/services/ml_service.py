@@ -24,6 +24,7 @@ ORCAMENTO_REQUIRED_FEATURES: tuple[str, ...] = (
     "tipologia",
     "complexidade",
     "peso_total_kg",
+    "area_total_m2",
     "numero_pecas",
     "material_principal",
     "tratamento_superficie",
@@ -33,6 +34,7 @@ ORCAMENTO_REQUIRED_LABELS: dict[str, str] = {
     "tipologia": "tipologia",
     "complexidade": "complexidade",
     "peso_total_kg": "peso_total_kg",
+    "area_total_m2": "area_total_m2",
     "numero_pecas": "numero_pecas",
     "material_principal": "material_principal",
     "tratamento_superficie": "tratamento_superficie",
@@ -46,6 +48,7 @@ ORCAMENTO_OPTION_FIELDS: dict[str, str] = {
 }
 ORCAMENTO_NUMERIC_OPTION_FIELDS: tuple[str, ...] = (
     "peso_total_kg",
+    "area_total_m2",
     "numero_pecas",
     "lead_time",
 )
@@ -246,6 +249,12 @@ def _validate_orcamento_parametros(parametros: dict[str, Any]) -> None:
         raise ValueError("peso_total_kg deve ser um numero maior que zero")
 
     try:
+        if float(parametros["area_total_m2"]) <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise ValueError("area_total_m2 deve ser um numero maior que zero")
+
+    try:
         if int(parametros["numero_pecas"]) < 1:
             raise ValueError
     except (TypeError, ValueError):
@@ -429,6 +438,7 @@ def _options_from_dataset(dataset: pd.DataFrame, source: str) -> dict[str, Any]:
             "tipologia",
             "complexidade",
             "peso_total_kg",
+            "area_total_m2",
             "numero_pecas",
             "material_principal",
             "tratamento_superficie",

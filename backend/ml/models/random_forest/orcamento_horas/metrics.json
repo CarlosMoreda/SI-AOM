@@ -2,7 +2,7 @@
   "dataset_type": "orcamento_horas",
   "dataset_source": "orcamento",
   "target": "real_horas",
-  "trained_at": "2026-05-31T14:15:01.274325+00:00",
+  "trained_at": "2026-06-01T11:42:36.496986+00:00",
   "rows_total": 3000,
   "rows_train": 2250,
   "rows_test": 750,
@@ -11,6 +11,7 @@
     "tipologia",
     "complexidade",
     "peso_total_kg",
+    "area_total_m2",
     "numero_pecas",
     "material_principal",
     "tratamento_superficie",
@@ -18,12 +19,16 @@
   ],
   "feature_ranges": {
     "peso_total_kg": {
-      "min": 224.08,
-      "max": 11986.77
+      "min": 229.02,
+      "max": 11989.54
+    },
+    "area_total_m2": {
+      "min": 18.18,
+      "max": 913.6
     },
     "numero_pecas": {
-      "min": 15.0,
-      "max": 999.0
+      "min": 16.0,
+      "max": 996.0
     },
     "lead_time": {
       "min": 21.0,
@@ -62,25 +67,25 @@
   },
   "dropped_columns": [
     "custo_total_servicos",
-    "custo_total_materiais",
-    "real_horas",
-    "real_materiais",
-    "real_operacoes",
+    "real_servicos",
     "custo_total_operacoes",
-    "real_servicos"
+    "custo_total_materiais",
+    "real_operacoes",
+    "real_horas",
+    "real_materiais"
   ],
-  "mae": 3.3953829666666704,
-  "rmse": 6.7546150229284585,
-  "r2": 0.9454359206867141,
-  "baseline_mae": 19.855600000000003,
-  "baseline_rmse": 31.27223360426946,
-  "baseline_r2": -0.16956249102702237,
+  "mae": 3.1619692999999978,
+  "rmse": 6.699850820909554,
+  "r2": 0.9405834043975746,
+  "baseline_mae": 18.9654,
+  "baseline_rmse": 29.40004359067063,
+  "baseline_r2": -0.14412492643395258,
   "model_beats_baseline": true,
   "cv_folds": 5,
-  "cv_mae_mean": 3.142822550000004,
-  "cv_mae_std": 0.18359418559833435,
-  "cv_r2_mean": 0.9575054162206804,
-  "cv_r2_std": 0.006884271114739093,
+  "cv_mae_mean": 3.189994549999999,
+  "cv_mae_std": 0.28546669880502823,
+  "cv_r2_mean": 0.9499218536057861,
+  "cv_r2_std": 0.011959628115505263,
   "quality_status": "good",
   "params": {
     "n_estimators": 400,

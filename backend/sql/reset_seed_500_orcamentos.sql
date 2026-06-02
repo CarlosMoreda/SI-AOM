@@ -353,6 +353,34 @@ WITH peso_por_projeto AS (
         )::numeric, 2) AS peso_total_kg
     FROM public.projeto p
 ),
+-- area_por_projeto: area_total_m2 e a area de superficie a tratar. Depende
+-- principalmente da tipologia (coberturas tem muita area por kg; mezaninos
+-- pouca) e do material (chapas finas de inox/aluminio tem mais area por kg
+-- que perfis em aco). Mantida por projeto para coerencia entre versoes.
+area_por_projeto AS (
+    SELECT
+        p.id_projeto,
+        round((
+            pp.peso_total_kg
+            * CASE p.tipologia
+                WHEN 'cobertura'  THEN 0.10  -- grande superficie por kg
+                WHEN 'passadico'  THEN 0.08
+                WHEN 'escadaria'  THEN 0.07
+                WHEN 'plataforma' THEN 0.06
+                WHEN 'mezanino'   THEN 0.05
+                WHEN 'pavilhao'   THEN 0.04  -- mais estrutural, menos chapa
+                ELSE                    0.05
+              END
+            * CASE
+                WHEN p.material_principal = 'AISI304' THEN 1.20  -- chapa fina
+                WHEN p.material_principal IN ('AL5754', 'AL6060') THEN 1.30
+                ELSE 1.00
+              END
+            * (0.85 + random() * 0.30)
+        )::numeric, 2) AS area_total_m2
+    FROM public.projeto p
+    JOIN peso_por_projeto pp ON pp.id_projeto = p.id_projeto
+),
 versoes AS (
     SELECT
         p.id_projeto,
@@ -360,6 +388,7 @@ versoes AS (
         p.tipologia,
         p.data_inicio,
         pp.peso_total_kg,
+        ap.area_total_m2,
         v.nr AS versao_num,
         format('v%s', v.nr) AS versao,
         -- Numero da ultima versao deste projeto. Usamos (id_projeto/10)%10
@@ -371,6 +400,7 @@ versoes AS (
         END AS last_versao_num
     FROM public.projeto p
     JOIN peso_por_projeto pp ON pp.id_projeto = p.id_projeto
+    JOIN area_por_projeto ap ON ap.id_projeto = p.id_projeto
     CROSS JOIN (VALUES (1), (2)) AS v(nr)
     WHERE
         v.nr = 1
@@ -384,6 +414,7 @@ INSERT INTO public.orcamento (
     estado,
     margem_percentual,
     peso_total_kg,
+    area_total_m2,
     observacoes
 )
 SELECT
@@ -443,6 +474,7 @@ SELECT
         END
     )::numeric, 2),
     peso_total_kg,
+    area_total_m2,
     format('Orcamento %s do projeto %s - estrutura metalica.', versao, id_projeto)
 FROM versoes
 ORDER BY id_projeto, versao_num;
@@ -582,12 +614,22 @@ mat_dados AS (
         mb.id_orcamento,
         mb.id_material,
         mb.quantidade,
+        mb.unidade,
         CASE
             WHEN mb.unidade = 'kg' THEN mb.quantidade
             WHEN mb.unidade = 'm' THEN round((mb.quantidade * mb.kg_por_m)::numeric, 2)
             WHEN mb.unidade = 'm2' THEN round((mb.quantidade * (2.8 + random() * 1.2))::numeric, 2)
             ELSE NULL::numeric
         END AS peso_kg,
+        -- area_m2 por linha:
+        -- 'm2' (chapa): area = quantidade
+        -- 'm'  (tubo):  area = quantidade x perimetro estimado (~0.10-0.25 m2/m)
+        -- 'kg'/'un':    NULL (parafusaria / peca de comercio sem superficie a tratar)
+        CASE
+            WHEN mb.unidade = 'm2' THEN mb.quantidade
+            WHEN mb.unidade = 'm' THEN round((mb.quantidade * (0.10 + random() * 0.15))::numeric, 2)
+            ELSE NULL::numeric
+        END AS area_m2,
         mb.desperdicio_percent,
         mb.preco_unitario_snapshot,
         mb.nome_material
@@ -598,6 +640,7 @@ INSERT INTO public.detalhe_material_orcamento (
     id_material,
     quantidade,
     peso_kg,
+    area_m2,
     desperdicio_percent,
     preco_unitario_snapshot,
     custo_total,
@@ -608,6 +651,7 @@ SELECT
     id_material,
     quantidade,
     peso_kg,
+    area_m2,
     desperdicio_percent,
     preco_unitario_snapshot,
     round((quantidade * preco_unitario_snapshot * (1 + (desperdicio_percent / 100.0)))::numeric, 2),
@@ -804,18 +848,21 @@ SELECT
             * (0.90 + random() * 0.20)
         )::numeric, 2)
     ) AS target_operacoes,
-    -- Servicos: peso x EUR/kg(tratamento) x ruido
+    -- Servicos: tratamentos por m2 usam area_total; galvanizacao usa peso
+    -- (e facturada por kg). Sem tratamento mantem base minima.
+    -- Preco/m2 alinhado com o catalogo (svc): pintura ~14.80, lacagem 16.50,
+    -- anodizacao 18.00, polimento 22.00. Galvanizacao 1.20 EUR/kg.
     GREATEST(200::numeric,
-        round((o.peso_total_kg
-            * CASE p.tratamento_superficie
-                WHEN 'galvanizacao'   THEN 0.80
-                WHEN 'pintura_liquida' THEN 0.62
-                WHEN 'lacagem'        THEN 0.55
-                WHEN 'anodizacao'     THEN 0.70
-                WHEN 'polimento'      THEN 0.95
-                WHEN 'sem_tratamento' THEN 0.10
-                ELSE                       0.20
-              END
+        round((
+            CASE p.tratamento_superficie
+                WHEN 'pintura_liquida' THEN o.area_total_m2 * 14.80
+                WHEN 'lacagem'         THEN o.area_total_m2 * 16.50
+                WHEN 'anodizacao'      THEN o.area_total_m2 * 18.00
+                WHEN 'polimento'       THEN o.area_total_m2 * 22.00
+                WHEN 'galvanizacao'    THEN o.peso_total_kg * 1.20
+                WHEN 'sem_tratamento'  THEN o.peso_total_kg * 0.10
+                ELSE                        o.peso_total_kg * 0.20
+            END
             * (0.90 + random() * 0.20)
         )::numeric, 2)
     ) AS target_servicos

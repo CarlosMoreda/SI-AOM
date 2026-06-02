@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -22,8 +22,16 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ProjetoResponse])
-def listar_projetos(db: Session = Depends(get_db)):
-    stmt = select(Projeto).order_by(Projeto.id_projeto.desc())
+def listar_projetos(
+    limit: int = Query(
+        default=500,
+        gt=0,
+        le=10000,
+        description="Maximo de registos a devolver (mais recentes primeiro)",
+    ),
+    db: Session = Depends(get_db),
+):
+    stmt = select(Projeto).order_by(Projeto.id_projeto.desc()).limit(limit)
     return db.scalars(stmt).all()
 
 

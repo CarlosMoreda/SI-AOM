@@ -27,6 +27,7 @@ class OrcamentoBase(BaseModel):
     estado: OrcamentoEstado = "em_preparacao"
     margem_percentual: Decimal | None = Field(default=None, ge=0, le=100)
     peso_total_kg: Decimal | None = Field(default=None, ge=0)
+    area_total_m2: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 
 
@@ -39,6 +40,7 @@ class OrcamentoUpdate(BaseModel):
     estado: OrcamentoEstado | None = None
     margem_percentual: Decimal | None = Field(default=None, ge=0, le=100)
     peso_total_kg: Decimal | None = Field(default=None, ge=0)
+    area_total_m2: Decimal | None = Field(default=None, ge=0)
     preco_venda: Decimal | None = Field(default=None, ge=0)
     observacoes: str | None = None
 

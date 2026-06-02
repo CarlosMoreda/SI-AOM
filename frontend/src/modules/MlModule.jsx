@@ -19,6 +19,7 @@ const EMPTY_PARAMS = {
   tipologia: '',
   complexidade: '',
   peso_total_kg: '',
+  area_total_m2: '',
   numero_pecas: '',
   material_principal: '',
   tratamento_superficie: '',
@@ -34,6 +35,7 @@ const OPTION_KEYS_BY_FIELD = {
 
 const NUMERIC_FIELDS = {
   peso_total_kg: { integer: false, fallbackMin: 0.01, fallbackPlaceholder: 'ex: 4500.5' },
+  area_total_m2: { integer: false, fallbackMin: 0.01, fallbackPlaceholder: 'ex: 220.0' },
   numero_pecas: { integer: true, fallbackMin: 1, fallbackPlaceholder: 'ex: 12' },
   lead_time: { integer: true, fallbackMin: 1, fallbackPlaceholder: 'ex: 30' },
 }
@@ -183,6 +185,7 @@ export default function MlModule({ token, user }) {
           tipologia: params.tipologia || null,
           complexidade: params.complexidade || null,
           peso_total_kg: params.peso_total_kg !== '' ? Number(params.peso_total_kg) : null,
+          area_total_m2: params.area_total_m2 !== '' ? Number(params.area_total_m2) : null,
           numero_pecas: params.numero_pecas !== '' ? Number(params.numero_pecas) : null,
           material_principal: params.material_principal || null,
           tratamento_superficie: params.tratamento_superficie || null,
@@ -298,6 +301,17 @@ export default function MlModule({ token, user }) {
                     placeholder={rangePlaceholder('peso_total_kg')}
                   />
                   {rangeText('peso_total_kg') && <small className="ml-range-note">{rangeText('peso_total_kg')}</small>}
+                </label>
+                <label>
+                  Area total (m2)
+                  <input
+                    required
+                    type="number" step="0.01" min={featureRange('area_total_m2')?.min ?? 0.01} max={featureRange('area_total_m2')?.max ?? undefined}
+                    value={params.area_total_m2}
+                    onChange={(e) => setParam('area_total_m2', e.target.value)}
+                    placeholder={rangePlaceholder('area_total_m2')}
+                  />
+                  {rangeText('area_total_m2') && <small className="ml-range-note">{rangeText('area_total_m2')}</small>}
                 </label>
                 <label>
                   N. de pecas

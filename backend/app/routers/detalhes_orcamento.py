@@ -116,6 +116,7 @@ def criar_material_orcamento(
         id_material=payload.id_material,
         quantidade=payload.quantidade,
         peso_kg=payload.peso_kg,
+        area_m2=payload.area_m2,
         desperdicio_percent=payload.desperdicio_percent,
         preco_unitario_snapshot=_q4(preco_snapshot),
         custo_total=_calc_custo_material(
@@ -168,6 +169,8 @@ def atualizar_material_orcamento(
         linha.quantidade = dados["quantidade"]
     if "peso_kg" in dados:
         linha.peso_kg = dados["peso_kg"]
+    if "area_m2" in dados:
+        linha.area_m2 = dados["area_m2"]
     if "desperdicio_percent" in dados:
         linha.desperdicio_percent = dados["desperdicio_percent"]
     if "observacoes" in dados:

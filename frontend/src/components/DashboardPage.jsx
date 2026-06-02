@@ -166,7 +166,7 @@ export default function DashboardPage({
   )
 
   const trendRows = useMemo(
-    () => [...budgetsWithReal].sort((a, b) => b.id_orcamento - a.id_orcamento).slice(0, 7).reverse(),
+    () => [...budgetsWithReal].sort((a, b) => b.id_orcamento - a.id_orcamento).slice(0, 5).reverse(),
     [budgetsWithReal],
   )
 
@@ -387,7 +387,7 @@ export default function DashboardPage({
                 <article className="panel analytics-panel-large">
                   <div className="panel-head">
                     <h3>Orcado vs Real por Orcamento</h3>
-                    <span>Ultimos 7 orcamentos</span>
+                    <span>Ultimos 5 orcamentos</span>
                   </div>
 
                   {budgetRealLoading && <p className="analytics-empty">A carregar custos reais dos orcamentos...</p>}

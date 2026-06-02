@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -19,8 +19,20 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ClienteResponse])
-def listar_clientes(db: Session = Depends(get_db)):
-    stmt = select(Cliente).order_by(Cliente.ativo.desc(), Cliente.nome.asc())
+def listar_clientes(
+    limit: int = Query(
+        default=500,
+        gt=0,
+        le=10000,
+        description="Maximo de registos a devolver",
+    ),
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(Cliente)
+        .order_by(Cliente.ativo.desc(), Cliente.nome.asc())
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 

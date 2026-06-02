@@ -59,6 +59,14 @@ export default function OrcamentoDraftLines({
               type="number"
               step="0.01"
               min="0"
+              placeholder="Area (m2)"
+              value={draftMatForm.area_m2 ?? ''}
+              onChange={(e) => setDraftMatForm((f) => ({ ...f, area_m2: e.target.value }))}
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
               placeholder="Desperdicio %"
               value={draftMatForm.desperdicio_percent}
               onChange={(e) => setDraftMatForm((f) => ({ ...f, desperdicio_percent: e.target.value }))}
@@ -79,6 +87,7 @@ export default function OrcamentoDraftLines({
                     <th>Material</th>
                     <th>Qtd</th>
                     <th>Peso (kg)</th>
+                    <th>Area (m2)</th>
                     <th>Desperd.%</th>
                     <th>Obs.</th>
                     <th></th>
@@ -90,6 +99,7 @@ export default function OrcamentoDraftLines({
                       <td>{linha.label}</td>
                       <td>{linha.quantidade}</td>
                       <td>{linha.peso_kg ?? '-'}</td>
+                      <td>{linha.area_m2 ?? '-'}</td>
                       <td>{linha.desperdicio_percent}%</td>
                       <td>{linha.observacoes || '-'}</td>
                       <td>

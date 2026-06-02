@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { formatDate, formatMoney } from '../utils/formatters'
 import { listProjects } from '../services/projectService'
 import { listOrcamentos, listOrcamentoMateriais, listOrcamentoOperacoes, listOrcamentoServicos } from '../services/orcamentoService'
+import { listMateriais } from '../services/materialService'
+import { listOperacoes } from '../services/operacaoService'
+import { listServicos } from '../services/servicoService'
 import {
   createRealizadoMaterial,
   deleteRealizadoMaterial,
@@ -23,6 +26,11 @@ export default function RealizadoModule({ token }) {
   const [selectedOrcId, setSelectedOrcId] = useState('')
 
   const [activeTab, setActiveTab] = useState('materiais')
+
+  // Catalogos para enriquecer os nomes dos itens nas linhas.
+  const [catalogMateriais, setCatalogMateriais] = useState([])
+  const [catalogOperacoes, setCatalogOperacoes] = useState([])
+  const [catalogServicos, setCatalogServicos] = useState([])
 
   const [linhasMateriais, setLinhasMateriais] = useState([])
   const [linhasOperacoes, setLinhasOperacoes] = useState([])
@@ -45,9 +53,18 @@ export default function RealizadoModule({ token }) {
   const loadBase = useCallback(async () => {
     if (!token) return
     try {
-      const [projs, orcs] = await Promise.all([listProjects(token), listOrcamentos(token)])
+      const [projs, orcs, mats, ops, svcs] = await Promise.all([
+        listProjects(token),
+        listOrcamentos(token),
+        listMateriais(token),
+        listOperacoes(token),
+        listServicos(token),
+      ])
       setProjects(projs)
       setOrcamentos(orcs)
+      setCatalogMateriais(mats)
+      setCatalogOperacoes(ops)
+      setCatalogServicos(svcs)
     } catch (e) {
       setError(e.message)
     }
@@ -56,6 +73,35 @@ export default function RealizadoModule({ token }) {
   useEffect(() => {
     loadBase()
   }, [loadBase])
+
+  const materialById = useMemo(
+    () => new Map(catalogMateriais.map((m) => [m.id_material, m])),
+    [catalogMateriais],
+  )
+  const operacaoById = useMemo(
+    () => new Map(catalogOperacoes.map((o) => [o.id_operacao, o])),
+    [catalogOperacoes],
+  )
+  const servicoById = useMemo(
+    () => new Map(catalogServicos.map((s) => [s.id_servico, s])),
+    [catalogServicos],
+  )
+
+  function describeMaterial(idMaterial) {
+    const mat = materialById.get(idMaterial)
+    if (!mat) return `Material #${idMaterial}`
+    return mat.codigo ? `${mat.codigo} - ${mat.nome}` : mat.nome
+  }
+  function describeOperacao(idOperacao) {
+    const op = operacaoById.get(idOperacao)
+    if (!op) return `Operacao #${idOperacao}`
+    return op.codigo ? `${op.codigo} - ${op.nome}` : op.nome
+  }
+  function describeServico(idServico) {
+    const svc = servicoById.get(idServico)
+    if (!svc) return `Servico #${idServico}`
+    return svc.codigo ? `${svc.codigo} - ${svc.nome}` : svc.nome
+  }
 
   const filteredOrcs = orcamentos.filter(
     (o) => !filterProjectId || String(o.id_projeto) === filterProjectId,
@@ -276,8 +322,8 @@ export default function RealizadoModule({ token }) {
                   return (
                     <div key={linha.id_linha_material} className="realizado-linha">
                       <div className="realizado-linha-head">
-                        <strong>Linha #{linha.id_linha_material} — Material #{linha.id_material}</strong>
-                        <span>Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
+                        <strong>{describeMaterial(linha.id_material)}</strong>
+                        <span>Linha #{linha.id_linha_material} | Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input
@@ -341,8 +387,8 @@ export default function RealizadoModule({ token }) {
                   return (
                     <div key={linha.id_linha_operacao} className="realizado-linha">
                       <div className="realizado-linha-head">
-                        <strong>Linha #{linha.id_linha_operacao} — Operacao #{linha.id_operacao}</strong>
-                        <span>Orc: {linha.horas}h | {formatMoney(linha.custo_total)}</span>
+                        <strong>{describeOperacao(linha.id_operacao)}</strong>
+                        <span>Linha #{linha.id_linha_operacao} | Orc: {linha.horas}h | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input
@@ -400,8 +446,8 @@ export default function RealizadoModule({ token }) {
                   return (
                     <div key={linha.id_linha_servico} className="realizado-linha">
                       <div className="realizado-linha-head">
-                        <strong>Linha #{linha.id_linha_servico} — Servico #{linha.id_servico}</strong>
-                        <span>Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
+                        <strong>{describeServico(linha.id_servico)}</strong>
+                        <span>Linha #{linha.id_linha_servico} | Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input

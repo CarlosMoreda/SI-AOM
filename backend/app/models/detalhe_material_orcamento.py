@@ -25,6 +25,7 @@ class DetalheMaterialOrcamento(Base):
 
     quantidade: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     peso_kg: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    area_m2: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     desperdicio_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
     preco_unitario_snapshot: Mapped[Decimal] = mapped_column(Numeric(14, 4), nullable=False)
     custo_total: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)

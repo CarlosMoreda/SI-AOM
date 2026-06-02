@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { normalizePerfil } from '../components/menuConfig'
 import { listBudgets } from '../services/budgetService'
+import { getDashboardKpis, getRecentBudgets } from '../services/dashboardService'
 import { listMateriais } from '../services/materialService'
 import { listOperacoes } from '../services/operacaoService'
 import {
@@ -23,6 +24,16 @@ const EMPTY_PROJECT_ANALYSIS = {
   totalOperacoes: 0,
   totalServicos: 0,
   linhas: [],
+}
+
+const EMPTY_DASHBOARD_KPIS = {
+  total_projetos: 0,
+  total_orcamentos: 0,
+  total_orcado: 0,
+  total_real: 0,
+  ticket_medio: 0,
+  desvio_medio_percent: 0,
+  projetos_por_estado: [],
 }
 
 const SOLDADURA_KEYWORDS = [
@@ -221,6 +232,10 @@ export function useDashboard(token, perfil) {
   const [budgetRealTotals, setBudgetRealTotals] = useState({})
   const [budgetRealLoading, setBudgetRealLoading] = useState(false)
   const [budgetRealError, setBudgetRealError] = useState('')
+
+  // KPIs globais e tendencia, agora calculados server-side.
+  const [dashboardKpis, setDashboardKpis] = useState(EMPTY_DASHBOARD_KPIS)
+  const [recentBudgets, setRecentBudgets] = useState([])
 
   const catalogsRef = useRef(null)
 

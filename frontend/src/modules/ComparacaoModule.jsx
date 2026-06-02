@@ -3,12 +3,16 @@ import { useCallback, useState } from 'react'
 import { formatMoney } from '../utils/formatters'
 import { getBudgetComparison } from '../services/comparisonService'
 
-function DesvioCell({ value }) {
+const NO_DATA = '—'
+
+function DesvioCell({ value, hasRealizado }) {
+  if (!hasRealizado) return <span className="comparison-value-empty">{NO_DATA}</span>
   const n = Number(value)
   return <span className={getDesvioClass(n)}>{formatMoney(value)}</span>
 }
 
-function PercentCell({ value }) {
+function PercentCell({ value, hasRealizado }) {
+  if (!hasRealizado) return <span className="comparison-value-empty">{NO_DATA}</span>
   const n = Number(value)
   return <span className={getDesvioClass(n)}>{n.toFixed(2)}%</span>
 }
@@ -17,6 +21,49 @@ function getDesvioClass(value) {
   if (value > 0) return 'comparison-value-positive'
   if (value < 0) return 'comparison-value-negative'
   return ''
+}
+
+function hasRealizadoValue(value) {
+  return Number(value) > 0
+}
+
+const CATEGORIA_LABEL = {
+  materiais: 'Materiais',
+  operacoes: 'Operacoes',
+  servicos: 'Servicos',
+  total: 'Total',
+  horas: 'Horas',
+}
+
+function AlertasDesvio({ alertas, limiar }) {
+  if (!alertas || alertas.length === 0) return null
+
+  return (
+    <div className="alertas-desvio">
+      <p className="alertas-desvio-head">
+        <strong>Alertas de desvio</strong>
+        <small>limiar aplicado: {Number(limiar).toFixed(2)}%</small>
+      </p>
+      <ul>
+        {alertas.map((a) => {
+          const isHoras = a.categoria === 'horas'
+          const desvioAbs = isHoras
+            ? `${Number(a.desvio_abs).toFixed(2)} h`
+            : formatMoney(a.desvio_abs)
+          const cls = a.severidade === 'alta'
+            ? 'message error'
+            : 'message warning'
+          return (
+            <li key={a.categoria} className={cls}>
+              <strong>{CATEGORIA_LABEL[a.categoria] || a.categoria}</strong>:
+              {' '}desvio de {Number(a.desvio_percent).toFixed(2)}% ({desvioAbs})
+              {' '}— severidade <strong>{a.severidade}</strong>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 export default function ComparacaoModule({ token }) {
@@ -71,70 +118,100 @@ export default function ComparacaoModule({ token }) {
           </button>
         </form>
 
-        {data && (
-          <div className="comparison-result">
-            <p className="comparison-subtitle">Orcamento #{data.id_orcamento}</p>
+        {data && (() => {
+          const semRealizadoTotal = !hasRealizadoValue(data.total.real)
+            && !hasRealizadoValue(data.horas.reais)
+          const horasHasRealizado = hasRealizadoValue(data.horas.reais)
 
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Categoria</th>
-                    <th>Orcado</th>
-                    <th>Real</th>
-                    <th>Desvio Abs.</th>
-                    <th>Desvio %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { label: 'Materiais', bloco: data.materiais },
-                    { label: 'Operacoes', bloco: data.operacoes },
-                    { label: 'Servicos', bloco: data.servicos },
-                    { label: 'Total', bloco: data.total },
-                  ].map(({ label, bloco }) => (
-                    <tr key={label}>
-                      <td><strong>{label}</strong></td>
-                      <td>{formatMoney(bloco.orcado)}</td>
-                      <td>{formatMoney(bloco.real)}</td>
-                      <td><DesvioCell value={bloco.desvio_abs} /></td>
-                      <td><PercentCell value={bloco.desvio_percent} /></td>
+          return (
+            <div className="comparison-result">
+              <p className="comparison-subtitle">Orcamento #{data.id_orcamento}</p>
+
+              {semRealizadoTotal && (
+                <p className="message info comparison-empty-notice">
+                  Sem realizado registado. Este orcamento ainda nao tem custos reais
+                  imputados — a analise de desvios fica disponivel assim que a producao
+                  registar os primeiros valores.
+                </p>
+              )}
+
+              <AlertasDesvio
+                alertas={data.alertas}
+                limiar={data.limiar_aplicado_percent}
+              />
+
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Categoria</th>
+                      <th>Orcado</th>
+                      <th>Real</th>
+                      <th>Desvio Abs.</th>
+                      <th>Desvio %</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {[
+                      { label: 'Materiais', bloco: data.materiais },
+                      { label: 'Operacoes', bloco: data.operacoes },
+                      { label: 'Servicos', bloco: data.servicos },
+                      { label: 'Total', bloco: data.total },
+                    ].map(({ label, bloco }) => {
+                      const hasReal = hasRealizadoValue(bloco.real)
+                      return (
+                        <tr key={label}>
+                          <td><strong>{label}</strong></td>
+                          <td>{formatMoney(bloco.orcado)}</td>
+                          <td>{formatMoney(bloco.real)}</td>
+                          <td><DesvioCell value={bloco.desvio_abs} hasRealizado={hasReal} /></td>
+                          <td><PercentCell value={bloco.desvio_percent} hasRealizado={hasReal} /></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-            <div className="panel comparison-nested-panel">
-              <div className="panel-head">
-                <h3>Horas</h3>
-                <span>Previstas vs Reais</span>
-              </div>
-              <div className="compare-grid">
-                <div>
-                  <p>Previstas</p>
-                  <strong>{Number(data.horas.previstas).toFixed(2)} h</strong>
+              <div className="panel comparison-nested-panel">
+                <div className="panel-head">
+                  <h3>Horas</h3>
+                  <span>Previstas vs Reais</span>
                 </div>
-                <div>
-                  <p>Reais</p>
-                  <strong>{Number(data.horas.reais).toFixed(2)} h</strong>
-                </div>
-                <div>
-                  <p>Desvio Abs.</p>
-                  <strong className={getDesvioClass(Number(data.horas.desvio_abs))}>
-                    {Number(data.horas.desvio_abs).toFixed(2)} h
-                  </strong>
-                </div>
-                <div>
-                  <p>Desvio %</p>
-                  <strong className={getDesvioClass(Number(data.horas.desvio_percent))}>
-                    {Number(data.horas.desvio_percent).toFixed(2)}%
-                  </strong>
+                <div className="compare-grid">
+                  <div>
+                    <p>Previstas</p>
+                    <strong>{Number(data.horas.previstas).toFixed(2)} h</strong>
+                  </div>
+                  <div>
+                    <p>Reais</p>
+                    <strong>{Number(data.horas.reais).toFixed(2)} h</strong>
+                  </div>
+                  <div>
+                    <p>Desvio Abs.</p>
+                    {horasHasRealizado ? (
+                      <strong className={getDesvioClass(Number(data.horas.desvio_abs))}>
+                        {Number(data.horas.desvio_abs).toFixed(2)} h
+                      </strong>
+                    ) : (
+                      <strong className="comparison-value-empty">{NO_DATA}</strong>
+                    )}
+                  </div>
+                  <div>
+                    <p>Desvio %</p>
+                    {horasHasRealizado ? (
+                      <strong className={getDesvioClass(Number(data.horas.desvio_percent))}>
+                        {Number(data.horas.desvio_percent).toFixed(2)}%
+                      </strong>
+                    ) : (
+                      <strong className="comparison-value-empty">{NO_DATA}</strong>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

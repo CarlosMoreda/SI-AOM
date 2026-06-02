@@ -8,6 +8,7 @@ class MLPredictCustoRequest(BaseModel):
     tipologia: str | None = Field(default=None, max_length=100)
     complexidade: str | None = Field(default=None, max_length=50)
     peso_total_kg: float | None = Field(default=None, gt=0)
+    area_total_m2: float | None = Field(default=None, gt=0)
     numero_pecas: int | None = Field(default=None, ge=1)
     material_principal: str | None = Field(default=None, max_length=100)
     tratamento_superficie: str | None = Field(default=None, max_length=100)
@@ -23,6 +24,7 @@ class MLPredictCustoRequest(BaseModel):
             "tipologia",
             "complexidade",
             "peso_total_kg",
+            "area_total_m2",
             "numero_pecas",
             "material_principal",
             "tratamento_superficie",

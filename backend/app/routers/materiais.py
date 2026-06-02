@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -18,8 +18,20 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[MaterialResponse])
-def listar_materiais(db: Session = Depends(get_db)):
-    stmt = select(Material).order_by(Material.id_material.desc())
+def listar_materiais(
+    limit: int = Query(
+        default=500,
+        gt=0,
+        le=10000,
+        description="Maximo de registos a devolver",
+    ),
+    db: Session = Depends(get_db),
+):
+    stmt = (
+        select(Material)
+        .order_by(Material.id_material.desc())
+        .limit(limit)
+    )
     return db.scalars(stmt).all()
 
 

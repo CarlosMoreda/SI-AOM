@@ -39,6 +39,7 @@ class Orcamento(Base):
     margem_percentual: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
 
     peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    area_total_m2: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     custo_total_materiais: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
     custo_total_operacoes: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
     custo_total_servicos: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
