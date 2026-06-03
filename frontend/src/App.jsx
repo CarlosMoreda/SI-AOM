@@ -32,9 +32,13 @@ function App() {
   const [resetToken, setResetToken] = useState('')
 
   useEffect(() => {
+    // Le o reset_token da URL apenas no mount inicial. Padrao aceitavel para
+    // hidratar estado a partir de parametros externos (URL/localStorage).
     const token = readResetTokenFromUrl()
     if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResetToken(token)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAuthView('reset')
     }
   }, [])
@@ -81,8 +85,6 @@ function App() {
       authError={auth.authError}
       onLogout={auth.logout}
       projects={dashboard.projects}
-      budgets={dashboard.budgets}
-      totalOrcado={dashboard.totalOrcado}
       loadingData={dashboard.loadingData}
       dataError={dashboard.dataError}
       selectedProjectId={dashboard.selectedProjectId}
@@ -94,6 +96,8 @@ function App() {
       budgetRealTotals={dashboard.budgetRealTotals}
       budgetRealLoading={dashboard.budgetRealLoading}
       budgetRealError={dashboard.budgetRealError}
+      dashboardKpis={dashboard.dashboardKpis}
+      recentBudgets={dashboard.recentBudgets}
     />
   )
 }

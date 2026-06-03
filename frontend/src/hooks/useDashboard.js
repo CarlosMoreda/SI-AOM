@@ -306,10 +306,16 @@ export function useDashboard(token, perfil) {
     setLoadingData(true)
     setDataError('')
     try {
-      const [projectRows, budgetRows] = await Promise.all([
+      // Em paralelo: KPIs agregados (server-side), tendencia, e as listas
+      // usadas pelos selectores e analise de projeto.
+      const [kpis, recents, projectRows, budgetRows] = await Promise.all([
+        getDashboardKpis(token),
+        getRecentBudgets(token, 5),
         listProjects(token),
         listBudgets(token),
       ])
+      setDashboardKpis(kpis || EMPTY_DASHBOARD_KPIS)
+      setRecentBudgets(Array.isArray(recents) ? recents : [])
       setProjects(projectRows)
       setBudgets(budgetRows)
       await loadBudgetRealTotals(budgetRows)
@@ -332,6 +338,8 @@ export function useDashboard(token, perfil) {
       setBudgetRealTotals({})
       setBudgetRealLoading(false)
       setBudgetRealError('')
+      setDashboardKpis(EMPTY_DASHBOARD_KPIS)
+      setRecentBudgets([])
       catalogsRef.current = null
       return
     }
@@ -422,5 +430,7 @@ export function useDashboard(token, perfil) {
     budgetRealTotals,
     budgetRealLoading,
     budgetRealError,
+    dashboardKpis,
+    recentBudgets,
   }
 }

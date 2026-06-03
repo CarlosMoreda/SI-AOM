@@ -109,8 +109,6 @@ export default function DashboardPage({
   authError,
   onLogout,
   projects,
-  budgets,
-  totalOrcado,
   loadingData,
   dataError,
   selectedProjectId,
@@ -122,6 +120,8 @@ export default function DashboardPage({
   budgetRealTotals,
   budgetRealLoading,
   budgetRealError,
+  dashboardKpis,
+  recentBudgets,
 }) {
   const [selectedModule, setSelectedModule] = useState('dashboard')
   const [lineTypeFilter, setLineTypeFilter] = useState('all')
@@ -147,15 +147,6 @@ export default function DashboardPage({
     [projects, selectedProjectId],
   )
 
-  const budgetsWithReal = useMemo(
-    () =>
-      budgets.map((budget) => ({
-        ...budget,
-        custo_total_real: toNumber(budgetRealTotals[budget.id_orcamento]),
-      })),
-    [budgets, budgetRealTotals],
-  )
-
   const projectBudgetsWithReal = useMemo(
     () =>
       projectBudgets.map((budget) => ({
@@ -165,37 +156,27 @@ export default function DashboardPage({
     [projectBudgets, budgetRealTotals],
   )
 
+  // Tendencia agora vem ja pronta do backend (orcamentos_recentes com totais real).
   const trendRows = useMemo(
-    () => [...budgetsWithReal].sort((a, b) => b.id_orcamento - a.id_orcamento).slice(0, 5).reverse(),
-    [budgetsWithReal],
+    () => (Array.isArray(recentBudgets) ? recentBudgets : []),
+    [recentBudgets],
   )
 
-  const statusRows = useMemo(() => {
-    const counts = projects.reduce((acc, project) => {
-      const key = project.estado || 'sem_estado'
-      acc[key] = (acc[key] || 0) + 1
-      return acc
-    }, {})
-
-    return Object.entries(counts)
-      .map(([estado, count]) => ({ estado, count }))
-      .sort((a, b) => b.count - a.count)
-  }, [projects])
-
-  const ticketMedio = useMemo(() => {
-    if (budgets.length === 0) return 0
-    return totalOrcado / budgets.length
-  }, [budgets.length, totalOrcado])
-
-  const totalReal = useMemo(
-    () => budgetsWithReal.reduce((acc, budget) => acc + toNumber(budget.custo_total_real), 0),
-    [budgetsWithReal],
+  // KPIs globais e distribuicao por estado vem do endpoint agregado.
+  const statusRows = useMemo(
+    () => (dashboardKpis?.projetos_por_estado || []).map((row) => ({
+      estado: row.estado,
+      count: row.count,
+    })),
+    [dashboardKpis],
   )
 
-  const desvioRealMedio = useMemo(() => {
-    if (totalOrcado <= 0) return 0
-    return ((totalReal - totalOrcado) / totalOrcado) * 100
-  }, [totalOrcado, totalReal])
+  const globalTotalProjetos = toNumber(dashboardKpis?.total_projetos)
+  const globalTotalOrcamentos = toNumber(dashboardKpis?.total_orcamentos)
+  const globalTotalOrcado = toNumber(dashboardKpis?.total_orcado)
+  const globalTotalReal = toNumber(dashboardKpis?.total_real)
+  const globalTicketMedio = toNumber(dashboardKpis?.ticket_medio)
+  const globalDesvioMedio = toNumber(dashboardKpis?.desvio_medio_percent)
 
   const totalProjetoReal = useMemo(
     () => projectBudgetsWithReal.reduce((acc, budget) => acc + toNumber(budget.custo_total_real), 0),
@@ -359,27 +340,27 @@ export default function DashboardPage({
               <section className="kpi-grid analytics-kpi-grid">
                 <article className="kpi-card">
                   <p className="kpi-label">Projetos</p>
-                  <p className="kpi-value">{projects.length}</p>
+                  <p className="kpi-value">{globalTotalProjetos}</p>
                 </article>
                 <article className="kpi-card">
                   <p className="kpi-label">Orcamentos</p>
-                  <p className="kpi-value">{budgets.length}</p>
+                  <p className="kpi-value">{globalTotalOrcamentos}</p>
                 </article>
                 <article className="kpi-card">
                   <p className="kpi-label">Total orcado</p>
-                  <p className="kpi-value">{formatMoney(totalOrcado)}</p>
+                  <p className="kpi-value">{formatMoney(globalTotalOrcado)}</p>
                 </article>
                 <article className="kpi-card">
                   <p className="kpi-label">Total real</p>
-                  <p className="kpi-value">{formatMoney(totalReal)}</p>
+                  <p className="kpi-value">{formatMoney(globalTotalReal)}</p>
                 </article>
                 <article className="kpi-card">
                   <p className="kpi-label">Ticket medio</p>
-                  <p className="kpi-value">{formatMoney(ticketMedio)}</p>
+                  <p className="kpi-value">{formatMoney(globalTicketMedio)}</p>
                 </article>
                 <article className="kpi-card">
                   <p className="kpi-label">Desvio medio real</p>
-                  <p className="kpi-value">{desvioRealMedio.toFixed(2)}%</p>
+                  <p className="kpi-value">{globalDesvioMedio.toFixed(2)}%</p>
                 </article>
               </section>
 
