@@ -21,7 +21,6 @@ class Projeto(Base):
     complexidade: Mapped[str | None] = mapped_column(String(50), nullable=True)
     material_principal: Mapped[str | None] = mapped_column(String(100), nullable=True)
     tratamento_superficie: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    processo_corte: Mapped[str | None] = mapped_column(String(100), nullable=True)
     lead_time: Mapped[int | None] = mapped_column(Integer, nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
 

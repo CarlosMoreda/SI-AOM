@@ -5,19 +5,26 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import (
     ROLE_ADMIN,
+    ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_db,
     require_roles,
 )
 from app.models.material import Material
 from app.schemas.material import MaterialCreate, MaterialResponse, MaterialUpdate
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
-)
+# Producao/Gestor precisam de LER o catalogo para resolver IDs em nomes.
+# So orcamentista+admin podem editar o catalogo.
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
+
+router = APIRouter()
 
 
-@router.get("/", response_model=list[MaterialResponse])
+@router.get("/", response_model=list[MaterialResponse], dependencies=READ_DEPS)
 def listar_materiais(
     limit: int = Query(
         default=500,
@@ -35,7 +42,7 @@ def listar_materiais(
     return db.scalars(stmt).all()
 
 
-@router.get("/{id_material}", response_model=MaterialResponse)
+@router.get("/{id_material}", response_model=MaterialResponse, dependencies=READ_DEPS)
 def obter_material(id_material: int, db: Session = Depends(get_db)):
     material = db.get(Material, id_material)
     if not material:
@@ -43,7 +50,12 @@ def obter_material(id_material: int, db: Session = Depends(get_db)):
     return material
 
 
-@router.post("/", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=MaterialResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
+)
 def criar_material(payload: MaterialCreate, db: Session = Depends(get_db)):
     material = Material(**payload.model_dump())
     db.add(material)
@@ -61,7 +73,7 @@ def criar_material(payload: MaterialCreate, db: Session = Depends(get_db)):
     return material
 
 
-@router.put("/{id_material}", response_model=MaterialResponse)
+@router.put("/{id_material}", response_model=MaterialResponse, dependencies=WRITE_DEPS)
 def atualizar_material(id_material: int, payload: MaterialUpdate, db: Session = Depends(get_db)):
     material = db.get(Material, id_material)
     if not material:
@@ -83,7 +95,11 @@ def atualizar_material(id_material: int, payload: MaterialUpdate, db: Session = 
     return material
 
 
-@router.delete("/{id_material}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id_material}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_material(id_material: int, db: Session = Depends(get_db)):
     material = db.get(Material, id_material)
     if not material:

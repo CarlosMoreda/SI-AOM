@@ -25,6 +25,8 @@ export default function OrcamentoDetailsPanel({
   onAddServico,
   linhasServicos,
   onDeleteServico,
+  onExportPdf,
+  exportingPdf,
 }) {
   if (!selectedOrc) return null
 
@@ -36,6 +38,17 @@ export default function OrcamentoDetailsPanel({
           <span className="kpi-mini">Materiais: {formatMoney(selectedOrc.custo_total_materiais)}</span>
           <span className="kpi-mini">Operacoes: {formatMoney(selectedOrc.custo_total_operacoes)}</span>
           <span className="kpi-mini">Servicos: {formatMoney(selectedOrc.custo_total_servicos)}</span>
+          {onExportPdf && (
+            <button
+              type="button"
+              className="btn-xs"
+              onClick={onExportPdf}
+              disabled={exportingPdf}
+              title="Exportar este orcamento para PDF"
+            >
+              {exportingPdf ? 'A gerar PDF...' : 'Exportar PDF'}
+            </button>
+          )}
         </div>
       </div>
 

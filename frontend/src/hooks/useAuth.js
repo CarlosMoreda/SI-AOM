@@ -60,6 +60,19 @@ export function useAuth() {
     }
   }, [token])
 
+  // Se qualquer chamada da API devolver 401, o apiClient emite este evento
+  // e a sessao e terminada automaticamente.
+  useEffect(() => {
+    const handler = () => {
+      clearToken()
+      setToken('')
+      setUser(null)
+      setAuthError('Sessao expirada. Volta a iniciar sessao.')
+    }
+    window.addEventListener('siaom:unauthorized', handler)
+    return () => window.removeEventListener('siaom:unauthorized', handler)
+  }, [])
+
   return {
     token,
     user,

@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -6,6 +9,7 @@ from app import models  # noqa: F401
 from app.config import settings
 from app.dependencies import ROLE_ADMIN, require_roles
 from app.database import engine
+from app.ml_cache import MLModelCache
 from app.routers import (
     auth,
     clientes,
@@ -22,10 +26,32 @@ from app.routers import (
     utilizadores,
 )
 
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Pre-carrega os modelos de ML uma unica vez no arranque.
+
+    Sem este cache, cada chamada a /ml/orcamento/prever liberta ~9 s a
+    desserializar 4 ficheiros .joblib de ~82 MB do disco. Com cache, o
+    primeiro pedido demora <300 ms e os seguintes ficam ainda mais rapidos.
+    """
+    cache = MLModelCache()
+    cache.load_all()
+    app.state.ml_cache = cache
+    try:
+        yield
+    finally:
+        cache.clear()
+        logger.info("[lifespan] Cache de ML libertada no shutdown.")
+
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -38,7 +64,11 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(clientes.router, prefix="/clientes", tags=["Clientes"])
-app.include_router(utilizadores.router, prefix="/utilizadores", tags=["Utilizadores"])
+app.include_router(
+    utilizadores.router,
+    prefix="/utilizadores",
+    tags=["Utilizadores"],
+)
 app.include_router(projetos.router, prefix="/projetos", tags=["Projetos"])
 app.include_router(
     orcamentos.router,

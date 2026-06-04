@@ -5,19 +5,24 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import (
     ROLE_ADMIN,
+    ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_db,
     require_roles,
 )
 from app.models.servico import Servico
 from app.schemas.servico import ServicoCreate, ServicoResponse, ServicoUpdate
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
-)
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
+
+router = APIRouter()
 
 
-@router.get("/", response_model=list[ServicoResponse])
+@router.get("/", response_model=list[ServicoResponse], dependencies=READ_DEPS)
 def listar_servicos(
     limit: int = Query(
         default=500,
@@ -35,7 +40,7 @@ def listar_servicos(
     return db.scalars(stmt).all()
 
 
-@router.get("/{id_servico}", response_model=ServicoResponse)
+@router.get("/{id_servico}", response_model=ServicoResponse, dependencies=READ_DEPS)
 def obter_servico(id_servico: int, db: Session = Depends(get_db)):
     servico = db.get(Servico, id_servico)
     if not servico:
@@ -43,7 +48,12 @@ def obter_servico(id_servico: int, db: Session = Depends(get_db)):
     return servico
 
 
-@router.post("/", response_model=ServicoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ServicoResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
+)
 def criar_servico(payload: ServicoCreate, db: Session = Depends(get_db)):
     servico = Servico(**payload.model_dump())
     db.add(servico)
@@ -61,7 +71,7 @@ def criar_servico(payload: ServicoCreate, db: Session = Depends(get_db)):
     return servico
 
 
-@router.put("/{id_servico}", response_model=ServicoResponse)
+@router.put("/{id_servico}", response_model=ServicoResponse, dependencies=WRITE_DEPS)
 def atualizar_servico(id_servico: int, payload: ServicoUpdate, db: Session = Depends(get_db)):
     servico = db.get(Servico, id_servico)
     if not servico:
@@ -83,7 +93,11 @@ def atualizar_servico(id_servico: int, payload: ServicoUpdate, db: Session = Dep
     return servico
 
 
-@router.delete("/{id_servico}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id_servico}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_servico(id_servico: int, db: Session = Depends(get_db)):
     servico = db.get(Servico, id_servico)
     if not servico:

@@ -22,7 +22,6 @@ const EMPTY_FORM = {
   complexidade: '',
   material_principal: '',
   tratamento_superficie: '',
-  processo_corte: '',
   numero_pecas: '',
   lead_time: '',
   observacoes: '',
@@ -85,7 +84,6 @@ export default function ProjetosModule({ token }) {
       complexidade: project.complexidade ?? '',
       material_principal: project.material_principal ?? '',
       tratamento_superficie: project.tratamento_superficie ?? '',
-      processo_corte: project.processo_corte ?? '',
       numero_pecas: project.numero_pecas != null ? String(project.numero_pecas) : '',
       lead_time: project.lead_time != null ? String(project.lead_time) : '',
       observacoes: project.observacoes ?? '',
@@ -122,7 +120,6 @@ export default function ProjetosModule({ token }) {
       complexidade: form.complexidade || null,
       material_principal: form.material_principal || null,
       tratamento_superficie: form.tratamento_superficie || null,
-      processo_corte: form.processo_corte || null,
       numero_pecas: form.numero_pecas !== '' ? Number(form.numero_pecas) : null,
       lead_time: form.lead_time !== '' ? Number(form.lead_time) : null,
       observacoes: form.observacoes || null,
@@ -250,10 +247,6 @@ export default function ProjetosModule({ token }) {
               <label>
                 Tratamento superficie
                 <input value={form.tratamento_superficie} onChange={(e) => setField('tratamento_superficie', e.target.value)} />
-              </label>
-              <label>
-                Processo de corte
-                <input value={form.processo_corte} onChange={(e) => setField('processo_corte', e.target.value)} />
               </label>
               <label>
                 Numero de pecas

@@ -191,9 +191,12 @@ export default function RealizadoModule({ token }) {
   }
 
   async function handleDeleteRealizadoMat(id) {
-    if (!window.confirm('Remover registo?')) return
+    if (!window.confirm('Remover este registo de material realizado?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteRealizadoMaterial(token, id)
+      setSuccess('Registo de material removido.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
       setError(e.message)
@@ -221,9 +224,12 @@ export default function RealizadoModule({ token }) {
   }
 
   async function handleDeleteRealizadoOp(id) {
-    if (!window.confirm('Remover registo?')) return
+    if (!window.confirm('Remover este registo de operacao realizada?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteRealizadoOperacao(token, id)
+      setSuccess('Registo de operacao removido.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
       setError(e.message)
@@ -251,9 +257,12 @@ export default function RealizadoModule({ token }) {
   }
 
   async function handleDeleteRealizadoSvc(id) {
-    if (!window.confirm('Remover registo?')) return
+    if (!window.confirm('Remover este registo de servico realizado?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteRealizadoServico(token, id)
+      setSuccess('Registo de servico removido.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
       setError(e.message)

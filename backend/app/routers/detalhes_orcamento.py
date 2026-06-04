@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import (
     ROLE_ADMIN,
+    ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_db,
     require_roles,
 )
@@ -35,9 +37,15 @@ from app.schemas.detalhe_servico_orcamento import (
 )
 from app.services.orcamento_service import recalcular_totais_orcamento
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
-)
+# Producao precisa de LER as linhas (materiais/operacoes/servicos) de um
+# orcamento para escolher qual registar realizado. Nao pode editar.
+# Gestor tambem pode ler para apoio a analise/aprovacao, embora nao edite linhas.
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
+
+router = APIRouter()
 
 
 def _to_decimal(value) -> Decimal:
@@ -79,6 +87,7 @@ def _calc_custo_servico(quantidade: Decimal, preco: Decimal) -> Decimal:
 @router.get(
     "/{id_orcamento}/materiais",
     response_model=list[DetalheMaterialOrcamentoResponse],
+    dependencies=READ_DEPS,
 )
 def listar_materiais_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     _obter_orcamento_404(db, id_orcamento)
@@ -95,6 +104,7 @@ def listar_materiais_orcamento(id_orcamento: int, db: Session = Depends(get_db))
     "/{id_orcamento}/materiais",
     response_model=DetalheMaterialOrcamentoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
 )
 def criar_material_orcamento(
     id_orcamento: int,
@@ -146,6 +156,7 @@ def criar_material_orcamento(
 @router.put(
     "/materiais/{id_linha_material}",
     response_model=DetalheMaterialOrcamentoResponse,
+    dependencies=WRITE_DEPS,
 )
 def atualizar_material_orcamento(
     id_linha_material: int,
@@ -201,7 +212,11 @@ def atualizar_material_orcamento(
     return linha
 
 
-@router.delete("/materiais/{id_linha_material}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/materiais/{id_linha_material}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_material_orcamento(id_linha_material: int, db: Session = Depends(get_db)):
     linha = db.get(DetalheMaterialOrcamento, id_linha_material)
     if not linha:
@@ -226,6 +241,7 @@ def eliminar_material_orcamento(id_linha_material: int, db: Session = Depends(ge
 @router.get(
     "/{id_orcamento}/operacoes",
     response_model=list[DetalheOperacaoOrcamentoResponse],
+    dependencies=READ_DEPS,
 )
 def listar_operacoes_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     _obter_orcamento_404(db, id_orcamento)
@@ -242,6 +258,7 @@ def listar_operacoes_orcamento(id_orcamento: int, db: Session = Depends(get_db))
     "/{id_orcamento}/operacoes",
     response_model=DetalheOperacaoOrcamentoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
 )
 def criar_operacao_orcamento(
     id_orcamento: int,
@@ -291,6 +308,7 @@ def criar_operacao_orcamento(
 @router.put(
     "/operacoes/{id_linha_operacao}",
     response_model=DetalheOperacaoOrcamentoResponse,
+    dependencies=WRITE_DEPS,
 )
 def atualizar_operacao_orcamento(
     id_linha_operacao: int,
@@ -342,7 +360,11 @@ def atualizar_operacao_orcamento(
     return linha
 
 
-@router.delete("/operacoes/{id_linha_operacao}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/operacoes/{id_linha_operacao}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_operacao_orcamento(id_linha_operacao: int, db: Session = Depends(get_db)):
     linha = db.get(DetalheOperacaoOrcamento, id_linha_operacao)
     if not linha:
@@ -367,6 +389,7 @@ def eliminar_operacao_orcamento(id_linha_operacao: int, db: Session = Depends(ge
 @router.get(
     "/{id_orcamento}/servicos",
     response_model=list[DetalheServicoOrcamentoResponse],
+    dependencies=READ_DEPS,
 )
 def listar_servicos_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     _obter_orcamento_404(db, id_orcamento)
@@ -383,6 +406,7 @@ def listar_servicos_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     "/{id_orcamento}/servicos",
     response_model=DetalheServicoOrcamentoResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
 )
 def criar_servico_orcamento(
     id_orcamento: int,
@@ -427,6 +451,7 @@ def criar_servico_orcamento(
 @router.put(
     "/servicos/{id_linha_servico}",
     response_model=DetalheServicoOrcamentoResponse,
+    dependencies=WRITE_DEPS,
 )
 def atualizar_servico_orcamento(
     id_linha_servico: int,
@@ -475,7 +500,11 @@ def atualizar_servico_orcamento(
     return linha
 
 
-@router.delete("/servicos/{id_linha_servico}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/servicos/{id_linha_servico}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_servico_orcamento(id_linha_servico: int, db: Session = Depends(get_db)):
     linha = db.get(DetalheServicoOrcamento, id_linha_servico)
     if not linha:

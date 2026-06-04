@@ -192,7 +192,6 @@ INSERT INTO public.projeto (
     complexidade,
     material_principal,
     tratamento_superficie,
-    processo_corte,
     lead_time,
     observacoes,
     criado_por,
@@ -291,16 +290,6 @@ SELECT
                 WHEN gs % 5 = 0 THEN 'lacagem'
                 ELSE 'sem_tratamento'
             END
-    END,
-    CASE
-        WHEN gs % 10 IN (1, 2) THEN
-            CASE
-                WHEN gs % 2 = 0 THEN 'laser_chapa'
-                ELSE 'laser_tubo'
-            END
-        WHEN gs % 10 = 0 THEN 'laser_chapa'
-        WHEN gs % 4 = 0 THEN 'corte'
-        ELSE 'laser_chapa'
     END,
     CASE
         WHEN gs % 40 = 0 THEN 120 + (gs % 90)
@@ -829,7 +818,7 @@ SELECT
             * (0.93 + random() * 0.14)
         )::numeric, 2)
     ) AS target_materiais,
-    -- Operacoes: peso/escala x complexidade x processo_corte x ruido
+    -- Operacoes: peso/escala x complexidade x ruido
     -- (peso/6 ~ EUR-equivalente; depois aplicam-se multiplicadores)
     GREATEST(300::numeric,
         round((o.peso_total_kg / 6.0
@@ -837,12 +826,6 @@ SELECT
                 WHEN 'alta'  THEN 1.90
                 WHEN 'media' THEN 1.40
                 ELSE              1.00
-              END
-            * CASE p.processo_corte
-                WHEN 'laser_chapa' THEN 1.08
-                WHEN 'laser_tubo'  THEN 1.05
-                WHEN 'corte'       THEN 1.00
-                ELSE                    1.00
               END
             * (1.0 + (p.numero_pecas::numeric * 0.0008))  -- mais pecas = mais montagem
             * (0.90 + random() * 0.20)
@@ -1140,7 +1123,6 @@ INSERT INTO public.previsao_ml (
     modelo_versao,
     custo_previsto,
     tempo_previsto,
-    desvio_esperado_percent,
     inputs_chave,
     observacoes
 )
@@ -1151,8 +1133,7 @@ SELECT
     'rf_v1',
     round((o.custo_total_orcado * (0.96 + random() * 0.12))::numeric, 2),
     round((o.horas_totais_previstas * (0.92 + random() * 0.18))::numeric, 2),
-    round((2 + random() * 12)::numeric, 2),
-    format('peso=%s; pecas=%s; processo=%s', o.peso_total_kg, p.numero_pecas, p.processo_corte),
+    format('peso=%s; pecas=%s; tipologia=%s', o.peso_total_kg, p.numero_pecas, p.tipologia),
     'Previsao automatica para analise de desvio.'
 FROM public.orcamento o
 JOIN public.projeto p ON p.id_projeto = o.id_projeto

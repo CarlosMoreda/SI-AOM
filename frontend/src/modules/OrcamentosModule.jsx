@@ -5,6 +5,7 @@ import { listProjects } from '../services/projectService'
 import {
   createOrcamento,
   deleteOrcamento,
+  downloadOrcamentoPdf,
   listOrcamentos,
   updateOrcamento,
   listOrcamentoMateriais,
@@ -91,6 +92,7 @@ export default function OrcamentosModule({ token }) {
 
   // Details panel
   const [selectedOrc, setSelectedOrc] = useState(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
   const [activeTab, setActiveTab] = useState('materiais')
 
   // Catalog data for dropdowns
@@ -506,6 +508,8 @@ export default function OrcamentosModule({ token }) {
   async function handleAddMaterial(e) {
     e.preventDefault()
     if (!selectedOrc) return
+    setError('')
+    setSuccess('')
     try {
       await addOrcamentoMaterial(token, selectedOrc.id_orcamento, {
         id_material: Number(addMatForm.id_material),
@@ -516,6 +520,7 @@ export default function OrcamentosModule({ token }) {
         observacoes: addMatForm.observacoes || null,
       })
       setAddMatForm({ id_material: '', quantidade: '', peso_kg: '', area_m2: '', desperdicio_percent: '0', observacoes: '' })
+      setSuccess('Linha de material adicionada.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -524,9 +529,12 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteMaterial(idLinha) {
-    if (!window.confirm('Remover linha de material?')) return
+    if (!window.confirm('Remover esta linha de material do orcamento?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteOrcamentoMaterial(token, idLinha)
+      setSuccess('Linha de material removida.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -537,6 +545,8 @@ export default function OrcamentosModule({ token }) {
   async function handleAddOperacao(e) {
     e.preventDefault()
     if (!selectedOrc) return
+    setError('')
+    setSuccess('')
     try {
       await addOrcamentoOperacao(token, selectedOrc.id_orcamento, {
         id_operacao: Number(addOpForm.id_operacao),
@@ -545,6 +555,7 @@ export default function OrcamentosModule({ token }) {
         observacoes: addOpForm.observacoes || null,
       })
       setAddOpForm({ id_operacao: '', horas: '', tempo_setup_h: '0', observacoes: '' })
+      setSuccess('Linha de operacao adicionada.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -553,9 +564,12 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteOperacao(idLinha) {
-    if (!window.confirm('Remover linha de operacao?')) return
+    if (!window.confirm('Remover esta linha de operacao do orcamento?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteOrcamentoOperacao(token, idLinha)
+      setSuccess('Linha de operacao removida.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -566,6 +580,8 @@ export default function OrcamentosModule({ token }) {
   async function handleAddServico(e) {
     e.preventDefault()
     if (!selectedOrc) return
+    setError('')
+    setSuccess('')
     try {
       await addOrcamentoServico(token, selectedOrc.id_orcamento, {
         id_servico: Number(addSvcForm.id_servico),
@@ -573,6 +589,7 @@ export default function OrcamentosModule({ token }) {
         observacoes: addSvcForm.observacoes || null,
       })
       setAddSvcForm({ id_servico: '', quantidade: '', observacoes: '' })
+      setSuccess('Linha de servico adicionada.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -581,13 +598,31 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteServico(idLinha) {
-    if (!window.confirm('Remover linha de servico?')) return
+    if (!window.confirm('Remover esta linha de servico do orcamento?')) return
+    setError('')
+    setSuccess('')
     try {
       await deleteOrcamentoServico(token, idLinha)
+      setSuccess('Linha de servico removida.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
       setError(e.message)
+    }
+  }
+
+  async function handleExportPdf() {
+    if (!selectedOrc) return
+    setError('')
+    setSuccess('')
+    setExportingPdf(true)
+    try {
+      await downloadOrcamentoPdf(token, selectedOrc.id_orcamento, selectedOrc.versao)
+      setSuccess('PDF gerado e descarregado.')
+    } catch (e) {
+      setError(e.message || 'Falha ao gerar PDF')
+    } finally {
+      setExportingPdf(false)
     }
   }
 
@@ -799,6 +834,8 @@ export default function OrcamentosModule({ token }) {
           onAddServico={handleAddServico}
           linhasServicos={linhasServicos}
           onDeleteServico={handleDeleteServico}
+          onExportPdf={handleExportPdf}
+          exportingPdf={exportingPdf}
         />
       )}
 

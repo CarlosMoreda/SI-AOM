@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>Orcamento {{ orcamento.id_orcamento }} v{{ orcamento.versao }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 2cm 1.8cm 2.4cm 1.8cm;
+      @frame footer {
+        -pdf-frame-content: footer-content;
+        bottom: 0.8cm;
+        margin-left: 1.8cm;
+        margin-right: 1.8cm;
+        height: 1.2cm;
+      }
+    }
+    body { font-family: Helvetica, Arial, sans-serif; color: #1f2933; font-size: 9.5pt; }
+    h1 { color: #0a2540; font-size: 18pt; margin: 0 0 4pt 0; }
+    h2 { color: #0a2540; font-size: 11pt; margin: 14pt 0 6pt 0;
+         border-bottom: 1px solid #d8e0e8; padding-bottom: 2pt; }
+    p { margin: 2pt 0; }
+    .header { margin-bottom: 18pt; }
+    .header-meta {
+      width: 100%; border-collapse: collapse; margin-top: 6pt;
+    }
+    .header-meta td {
+      vertical-align: top; padding: 3pt 6pt 3pt 0; font-size: 9pt;
+    }
+    .header-meta .label { color: #56636f; width: 90pt; }
+    .badge {
+      display: inline-block; padding: 2pt 6pt; border-radius: 3pt;
+      font-size: 8pt; font-weight: bold; color: #fff; background: #2a7fbe;
+    }
+    table.lines { width: 100%; border-collapse: collapse; margin-top: 4pt; }
+    table.lines th {
+      background: #0a2540; color: #fff; font-weight: bold;
+      padding: 4pt 6pt; text-align: left; font-size: 8.5pt;
+    }
+    table.lines td {
+      border-bottom: 1px solid #e5ebf0;
+      padding: 3pt 6pt; font-size: 9pt;
+    }
+    table.lines td.num, table.lines th.num { text-align: right; }
+    table.lines tr.subtotal td {
+      font-weight: bold; background: #f3f7fa;
+      border-top: 1.5pt solid #0a2540;
+    }
+    .totals-table {
+      width: 50%; margin-left: 50%; margin-top: 18pt;
+      border-collapse: collapse;
+    }
+    .totals-table td {
+      padding: 4pt 8pt; font-size: 9.5pt;
+    }
+    .totals-table tr.grand td {
+      background: #0a2540; color: #fff;
+      font-size: 11pt; font-weight: bold;
+    }
+    .totals-table td.label { color: #56636f; text-align: right; }
+    .totals-table td.value { text-align: right; font-weight: bold; }
+    .empty {
+      color: #8896a3; font-style: italic; padding: 6pt 0;
+    }
+    .observacoes {
+      margin-top: 14pt; padding: 8pt;
+      background: #f7f9fb; border-left: 3pt solid #2a7fbe;
+      font-size: 9pt;
+    }
+    #footer-content {
+      color: #8896a3; font-size: 7.5pt; text-align: center;
+      border-top: 0.5pt solid #d8e0e8; padding-top: 4pt;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>SI-AOM — Orcamento</h1>
+  <table class="header-meta">
+    <tr>
+      <td class="label">Numero:</td>
+      <td><strong>#{{ orcamento.id_orcamento }}</strong></td>
+      <td class="label">Versao:</td>
+      <td><strong>{{ orcamento.versao }}</strong></td>
+    </tr>
+    <tr>
+      <td class="label">Estado:</td>
+      <td><span class="badge">{{ orcamento.estado }}</span></td>
+      <td class="label">Data emissao:</td>
+      <td>{{ data_emissao }}</td>
+    </tr>
+    <tr>
+      <td class="label">Cliente:</td>
+      <td colspan="3">
+        {% if cliente %}
+          <strong>{{ cliente.nome }}</strong>
+          {% if cliente.nif %} (NIF {{ cliente.nif }}){% endif %}
+        {% else %}
+          <em>Sem cliente associado</em>
+        {% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="label">Projeto:</td>
+      <td colspan="3">
+        <strong>{{ projeto.referencia }}</strong> &mdash; {{ projeto.designacao }}
+      </td>
+    </tr>
+    {% if projeto.tipologia or projeto.material_principal %}
+    <tr>
+      <td class="label">Caracteristicas:</td>
+      <td colspan="3" style="font-size: 8.5pt; color: #56636f;">
+        {% if projeto.tipologia %}{{ projeto.tipologia }}{% endif %}
+        {% if projeto.complexidade %} &middot; complexidade {{ projeto.complexidade }}{% endif %}
+        {% if projeto.material_principal %} &middot; {{ projeto.material_principal }}{% endif %}
+        {% if projeto.tratamento_superficie %} &middot; {{ projeto.tratamento_superficie }}{% endif %}
+        {% if orcamento.peso_total_kg %} &middot; {{ "{:,.0f}".format(orcamento.peso_total_kg|float) }} kg{% endif %}
+        {% if orcamento.area_total_m2 %} &middot; {{ "{:,.2f}".format(orcamento.area_total_m2|float) }} m&sup2;{% endif %}
+      </td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+<h2>Materiais</h2>
+{% if materiais %}
+<table class="lines">
+  <thead>
+    <tr>
+      <th>Codigo</th><th>Designacao</th>
+      <th class="num">Qtd.</th><th class="num">Pr. Unit.</th><th class="num">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in materiais %}
+    <tr>
+      <td>{{ l.codigo }}</td>
+      <td>{{ l.nome }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.quantidade|float) }}</td>
+      <td class="num">{{ "{:,.4f}".format(l.preco_unitario_snapshot|float) }} &euro;</td>
+      <td class="num">{{ "{:,.2f}".format(l.custo_total|float) }} &euro;</td>
+    </tr>
+    {% endfor %}
+    <tr class="subtotal">
+      <td colspan="4">Subtotal Materiais</td>
+      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_materiais|float) }} &euro;</td>
+    </tr>
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Sem linhas de material.</p>
+{% endif %}
+
+<h2>Operacoes</h2>
+{% if operacoes %}
+<table class="lines">
+  <thead>
+    <tr>
+      <th>Codigo</th><th>Operacao</th>
+      <th class="num">Horas</th><th class="num">Setup (h)</th>
+      <th class="num">Custo/h</th><th class="num">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in operacoes %}
+    <tr>
+      <td>{{ l.codigo }}</td>
+      <td>{{ l.nome }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.horas|float) }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.tempo_setup_h|float) }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.custo_hora_snapshot|float) }} &euro;</td>
+      <td class="num">{{ "{:,.2f}".format(l.custo_total|float) }} &euro;</td>
+    </tr>
+    {% endfor %}
+    <tr class="subtotal">
+      <td colspan="5">Subtotal Operacoes ({{ "{:,.2f}".format(orcamento.horas_totais_previstas|float) }} h)</td>
+      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_operacoes|float) }} &euro;</td>
+    </tr>
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Sem linhas de operacao.</p>
+{% endif %}
+
+<h2>Servicos</h2>
+{% if servicos %}
+<table class="lines">
+  <thead>
+    <tr>
+      <th>Codigo</th><th>Servico</th>
+      <th class="num">Qtd.</th><th class="num">Pr. Unit.</th><th class="num">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in servicos %}
+    <tr>
+      <td>{{ l.codigo }}</td>
+      <td>{{ l.nome }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.quantidade|float) }}</td>
+      <td class="num">{{ "{:,.2f}".format(l.preco_unitario_snapshot|float) }} &euro;</td>
+      <td class="num">{{ "{:,.2f}".format(l.custo_total|float) }} &euro;</td>
+    </tr>
+    {% endfor %}
+    <tr class="subtotal">
+      <td colspan="4">Subtotal Servicos</td>
+      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_servicos|float) }} &euro;</td>
+    </tr>
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Sem linhas de servico.</p>
+{% endif %}
+
+<table class="totals-table">
+  <tr>
+    <td class="label">Custo total orcado:</td>
+    <td class="value">{{ "{:,.2f}".format(orcamento.custo_total_orcado|float) }} &euro;</td>
+  </tr>
+  {% if orcamento.margem_percentual %}
+  <tr>
+    <td class="label">Margem aplicada:</td>
+    <td class="value">{{ "{:,.2f}".format(orcamento.margem_percentual|float) }} %</td>
+  </tr>
+  {% endif %}
+  <tr class="grand">
+    <td class="label" style="color: #fff;">Preco de venda:</td>
+    <td class="value">{{ "{:,.2f}".format(orcamento.preco_venda|float) }} &euro;</td>
+  </tr>
+</table>
+
+{% if orcamento.observacoes %}
+<div class="observacoes">
+  <strong>Observacoes:</strong><br>
+  {{ orcamento.observacoes }}
+</div>
+{% endif %}
+
+<div id="footer-content">
+  SI-AOM v0.1.0 &middot; Documento gerado em {{ data_emissao }}
+  &middot; Or&ccedil;amento #{{ orcamento.id_orcamento }} v{{ orcamento.versao }}
+  &middot; <pdf:pagenumber> / <pdf:pagecount>
+</div>
+
+</body>
+</html>

@@ -5,19 +5,24 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import (
     ROLE_ADMIN,
+    ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_db,
     require_roles,
 )
 from app.models.operacao import Operacao
 from app.schemas.operacao import OperacaoCreate, OperacaoResponse, OperacaoUpdate
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
-)
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_ADMIN))]
+
+router = APIRouter()
 
 
-@router.get("/", response_model=list[OperacaoResponse])
+@router.get("/", response_model=list[OperacaoResponse], dependencies=READ_DEPS)
 def listar_operacoes(
     limit: int = Query(
         default=500,
@@ -35,7 +40,7 @@ def listar_operacoes(
     return db.scalars(stmt).all()
 
 
-@router.get("/{id_operacao}", response_model=OperacaoResponse)
+@router.get("/{id_operacao}", response_model=OperacaoResponse, dependencies=READ_DEPS)
 def obter_operacao(id_operacao: int, db: Session = Depends(get_db)):
     operacao = db.get(Operacao, id_operacao)
     if not operacao:
@@ -43,7 +48,12 @@ def obter_operacao(id_operacao: int, db: Session = Depends(get_db)):
     return operacao
 
 
-@router.post("/", response_model=OperacaoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=OperacaoResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
+)
 def criar_operacao(payload: OperacaoCreate, db: Session = Depends(get_db)):
     operacao = Operacao(**payload.model_dump())
     db.add(operacao)
@@ -61,7 +71,7 @@ def criar_operacao(payload: OperacaoCreate, db: Session = Depends(get_db)):
     return operacao
 
 
-@router.put("/{id_operacao}", response_model=OperacaoResponse)
+@router.put("/{id_operacao}", response_model=OperacaoResponse, dependencies=WRITE_DEPS)
 def atualizar_operacao(id_operacao: int, payload: OperacaoUpdate, db: Session = Depends(get_db)):
     operacao = db.get(Operacao, id_operacao)
     if not operacao:
@@ -83,7 +93,11 @@ def atualizar_operacao(id_operacao: int, payload: OperacaoUpdate, db: Session = 
     return operacao
 
 
-@router.delete("/{id_operacao}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id_operacao}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_operacao(id_operacao: int, db: Session = Depends(get_db)):
     operacao = db.get(Operacao, id_operacao)
     if not operacao:

@@ -1,4 +1,5 @@
 ﻿tipologia;complexidade;peso_total_kg;area_total_m2;numero_pecas;material_principal;tratamento_superficie;lead_time;custo_total_materiais;custo_total_operacoes;custo_total_servicos;real_materiais;real_operacoes;real_servicos;real_horas
+passadico;baixa;510.23;53.55;141;AL6060;anodizacao;21;1861.61;300.0;1052.66;2.0;100.0;200.0;2.0
 cobertura;baixa;3681.12;510.44;215;AL5754;anodizacao;57;17999.47;804.38;8928.28;18410.35;866.82;10152.84;23.12
 mezanino;media;4823.9;277.23;179;S235JR;pintura_liquida;48;7777.01;1367.38;3736.89;8362.19;1488.88;4105.58;37.94
 plataforma;alta;3385.44;190.11;183;S355JR;galvanizacao;39;6789.16;1219.83;4116.39;7945.21;1285.05;5494.42;36.41

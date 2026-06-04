@@ -1,7 +1,45 @@
-import { apiRequest } from './apiClient.js'
+import { apiRequest, API_BASE_URL, ApiError } from './apiClient.js'
 
 export async function listOrcamentos(token) {
   return apiRequest('/orcamentos/', { token })
+}
+
+/**
+ * Faz download do PDF do orcamento. Como o endpoint devolve binario,
+ * nao podemos usar o apiRequest (que assume JSON). Em vez disso fazemos
+ * fetch directo e tratamos a resposta como Blob.
+ */
+export async function downloadOrcamentoPdf(token, idOrcamento, versao) {
+  const url = `${API_BASE_URL}/orcamentos/${idOrcamento}/pdf`
+  let response
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } catch {
+    throw new ApiError(
+      'Nao foi possivel contactar o servidor para gerar o PDF.',
+      { status: 0, code: 'network' },
+    )
+  }
+  if (!response.ok) {
+    let detail = `Erro HTTP ${response.status}`
+    try {
+      const body = await response.json()
+      if (body?.detail) detail = body.detail
+    } catch { /* corpo nao e JSON, ignora */ }
+    throw new ApiError(detail, { status: response.status, code: 'http' })
+  }
+  const blob = await response.blob()
+  const objectUrl = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = `orcamento_${idOrcamento}_v${versao || '1'}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // libertar memoria do blob apos o browser iniciar o download
+  setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000)
 }
 
 export async function createOrcamento(token, payload) {

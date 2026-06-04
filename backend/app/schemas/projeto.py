@@ -25,7 +25,6 @@ class ProjetoBase(BaseModel):
     complexidade: str | None = Field(default=None, max_length=50)
     material_principal: str | None = Field(default=None, max_length=100)
     tratamento_superficie: str | None = Field(default=None, max_length=100)
-    processo_corte: str | None = Field(default=None, max_length=100)
     lead_time: int | None = Field(default=None, ge=0)
     observacoes: str | None = None
     id_cliente: int | None = Field(default=None, gt=0)
@@ -46,7 +45,6 @@ class ProjetoUpdate(BaseModel):
     complexidade: str | None = Field(default=None, max_length=50)
     material_principal: str | None = Field(default=None, max_length=100)
     tratamento_superficie: str | None = Field(default=None, max_length=100)
-    processo_corte: str | None = Field(default=None, max_length=100)
     lead_time: int | None = Field(default=None, ge=0)
     observacoes: str | None = None
     id_cliente: int | None = Field(default=None, gt=0)

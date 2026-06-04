@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -7,6 +7,7 @@ from app.dependencies import (
     ROLE_ADMIN,
     ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_current_user,
     get_db,
     require_roles,
@@ -14,13 +15,21 @@ from app.dependencies import (
 from app.models.orcamento import Orcamento
 from app.schemas.orcamento import OrcamentoCreate, OrcamentoResponse, OrcamentoUpdate
 from app.services.orcamento_service import recalcular_totais_orcamento
+from app.services.pdf_service import gerar_pdf_orcamento
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_ADMIN))]
-)
+# Producao precisa de LER orcamentos para escolher para qual registar realizado,
+# mas nao pode CRIAR/EDITAR/APAGAR orcamentos.
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_ADMIN,
+))]
+
+router = APIRouter()
 
 
-@router.get("/", response_model=list[OrcamentoResponse])
+@router.get("/", response_model=list[OrcamentoResponse], dependencies=READ_DEPS)
 def listar_orcamentos(
     limit: int = Query(
         default=500,
@@ -38,7 +47,7 @@ def listar_orcamentos(
     return db.scalars(stmt).all()
 
 
-@router.get("/{id_orcamento}", response_model=OrcamentoResponse)
+@router.get("/{id_orcamento}", response_model=OrcamentoResponse, dependencies=READ_DEPS)
 def obter_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     orcamento = db.get(Orcamento, id_orcamento)
     if not orcamento:
@@ -46,7 +55,12 @@ def obter_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     return orcamento
 
 
-@router.post("/", response_model=OrcamentoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=OrcamentoResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
+)
 def criar_orcamento(
     payload: OrcamentoCreate,
     db: Session = Depends(get_db),
@@ -68,7 +82,7 @@ def criar_orcamento(
     return orcamento
 
 
-@router.put("/{id_orcamento}", response_model=OrcamentoResponse)
+@router.put("/{id_orcamento}", response_model=OrcamentoResponse, dependencies=WRITE_DEPS)
 def atualizar_orcamento(id_orcamento: int, payload: OrcamentoUpdate, db: Session = Depends(get_db)):
     orcamento = db.get(Orcamento, id_orcamento)
     if not orcamento:
@@ -95,7 +109,43 @@ def atualizar_orcamento(id_orcamento: int, payload: OrcamentoUpdate, db: Session
     return orcamento
 
 
-@router.delete("/{id_orcamento}", status_code=status.HTTP_204_NO_CONTENT)
+@router.get(
+    "/{id_orcamento}/pdf",
+    dependencies=READ_DEPS,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+def exportar_orcamento_pdf(id_orcamento: int, db: Session = Depends(get_db)):
+    """Gera e devolve o PDF da proposta comercial deste orcamento."""
+    orcamento = db.get(Orcamento, id_orcamento)
+    if not orcamento:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Orçamento não encontrado",
+        )
+    try:
+        pdf_bytes = gerar_pdf_orcamento(db, id_orcamento)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+    # `versao` pode ja vir com o prefixo "v" (ex: "v1"). Normaliza para evitar
+    # ficheiros com nome tipo "v_v1.pdf".
+    versao_norm = orcamento.versao if orcamento.versao.startswith("v") else f"v{orcamento.versao}"
+    filename = f"orcamento_{id_orcamento}_{versao_norm}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.delete(
+    "/{id_orcamento}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_orcamento(id_orcamento: int, db: Session = Depends(get_db)):
     orcamento = db.get(Orcamento, id_orcamento)
     if not orcamento:

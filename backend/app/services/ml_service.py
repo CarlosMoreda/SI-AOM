@@ -479,11 +479,17 @@ def get_orcamento_options(model_base_dir: Path = MODEL_BASE_DIR) -> dict[str, An
 def predict_custo_from_params(
     parametros: dict[str, Any],
     model_base_dir: Path = MODEL_BASE_DIR,
+    cache: Any | None = None,
 ) -> dict[str, Any]:
     """
     Preve os custos por componente (materiais, operacoes, servicos) e as
     horas reais de execucao a partir dos parametros do projeto, sem
     necessidade de um orcamento existente na BD.
+
+    Se `cache` for fornecido (instancia de MLModelCache), os sub-modelos sao
+    obtidos da memoria em vez de serem desserializados do disco. Caso o
+    cache nao tenha o sub-modelo (ex: treinado depois do arranque), recorre
+    automaticamente ao disco.
     """
     parametros = dict(parametros)
     _validate_orcamento_parametros(parametros)
@@ -502,8 +508,13 @@ def predict_custo_from_params(
                 "Um administrador deve ir a 'Treinar Modelos' e selecionar 'orcamento'."
             )
 
-        model = joblib.load(model_path)
-        metrics = _load_metrics(metrics_path)
+        # Cache em memoria evita re-ler ~82 MB do disco a cada previsao.
+        model = cache.get_model(sub_model) if cache is not None else None
+        if model is None:
+            model = joblib.load(model_path)
+        metrics = cache.get_metrics(sub_model) if cache is not None else None
+        if metrics is None:
+            metrics = _load_metrics(metrics_path)
         features_used = metrics.get("features_used", [])
         if not features_used:
             raise ValueError(f"Metricas de '{sub_model}' sem 'features_used'")
@@ -596,7 +607,6 @@ def save_custo_prediction(
         modelo_versao=resultado.get("modelo_versao"),
         custo_previsto=resultado.get("custo_total"),
         tempo_previsto=resultado.get("tempo_previsto"),
-        desvio_esperado_percent=None,
         inputs_chave=json.dumps(inputs_chave, ensure_ascii=False, default=str),
         observacoes=observacoes,
     )

@@ -7,6 +7,7 @@ from app.dependencies import (
     ROLE_ADMIN,
     ROLE_GESTOR,
     ROLE_ORCAMENTISTA,
+    ROLE_PRODUCAO,
     get_current_user,
     get_db,
     require_roles,
@@ -16,12 +17,18 @@ from app.models.projeto import Projeto
 from app.schemas.orcamento import OrcamentoResponse
 from app.schemas.projeto import ProjetoCreate, ProjetoResponse, ProjetoUpdate
 
-router = APIRouter(
-    dependencies=[Depends(require_roles(ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_ADMIN))]
-)
+# Producao precisa de LER projetos para o filtro do modulo Realizado.
+READ_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_PRODUCAO, ROLE_ADMIN,
+))]
+WRITE_DEPS = [Depends(require_roles(
+    ROLE_ORCAMENTISTA, ROLE_GESTOR, ROLE_ADMIN,
+))]
+
+router = APIRouter()
 
 
-@router.get("/", response_model=list[ProjetoResponse])
+@router.get("/", response_model=list[ProjetoResponse], dependencies=READ_DEPS)
 def listar_projetos(
     limit: int = Query(
         default=500,
@@ -35,7 +42,7 @@ def listar_projetos(
     return db.scalars(stmt).all()
 
 
-@router.get("/{id_projeto}", response_model=ProjetoResponse)
+@router.get("/{id_projeto}", response_model=ProjetoResponse, dependencies=READ_DEPS)
 def obter_projeto(id_projeto: int, db: Session = Depends(get_db)):
     projeto = db.get(Projeto, id_projeto)
     if not projeto:
@@ -43,7 +50,11 @@ def obter_projeto(id_projeto: int, db: Session = Depends(get_db)):
     return projeto
 
 
-@router.get("/{id_projeto}/orcamentos", response_model=list[OrcamentoResponse])
+@router.get(
+    "/{id_projeto}/orcamentos",
+    response_model=list[OrcamentoResponse],
+    dependencies=READ_DEPS,
+)
 def listar_orcamentos_do_projeto(id_projeto: int, db: Session = Depends(get_db)):
     projeto = db.get(Projeto, id_projeto)
     if not projeto:
@@ -57,7 +68,12 @@ def listar_orcamentos_do_projeto(id_projeto: int, db: Session = Depends(get_db))
     return db.scalars(stmt).all()
 
 
-@router.post("/", response_model=ProjetoResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ProjetoResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPS,
+)
 def criar_projeto(
     payload: ProjetoCreate,
     db: Session = Depends(get_db),
@@ -79,7 +95,7 @@ def criar_projeto(
     return projeto
 
 
-@router.put("/{id_projeto}", response_model=ProjetoResponse)
+@router.put("/{id_projeto}", response_model=ProjetoResponse, dependencies=WRITE_DEPS)
 def atualizar_projeto(id_projeto: int, payload: ProjetoUpdate, db: Session = Depends(get_db)):
     projeto = db.get(Projeto, id_projeto)
     if not projeto:
@@ -101,7 +117,11 @@ def atualizar_projeto(id_projeto: int, payload: ProjetoUpdate, db: Session = Dep
     return projeto
 
 
-@router.delete("/{id_projeto}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{id_projeto}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPS,
+)
 def eliminar_projeto(id_projeto: int, db: Session = Depends(get_db)):
     projeto = db.get(Projeto, id_projeto)
     if not projeto:

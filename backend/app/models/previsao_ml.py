@@ -30,7 +30,6 @@ class PrevisaoML(Base):
 
     custo_previsto: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     tempo_previsto: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
-    desvio_esperado_percent: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
 
     inputs_chave: Mapped[str | None] = mapped_column(Text, nullable=True)
     observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
