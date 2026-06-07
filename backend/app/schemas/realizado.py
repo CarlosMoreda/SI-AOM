@@ -3,19 +3,31 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+# Limites de seguranca aplicados as quantidades e precos monetarios.
+# Sao folgas largas mas suficientes para impedir a entrada de valores
+# evidentemente erroneos (ex: 23 milhoes de kg ou 19 mil milhoes de EUR).
+MAX_QTD = Decimal("1000000")          # 1 milhao de unidades
+MAX_PESO_KG = Decimal("10000000")     # 10 mil toneladas
+MAX_PRECO_UNIT = Decimal("1000000")   # 1 milhao EUR por unidade
+MAX_HORAS = Decimal("100000")         # 100 mil horas
+
 
 class RealizadoMaterialCreate(BaseModel):
     id_linha_material: int = Field(gt=0)
-    quantidade: Decimal = Field(gt=0)
-    peso_kg: Decimal | None = Field(default=None, ge=0)
-    custo_unitario_real: Decimal | None = Field(default=None, ge=0)
+    quantidade: Decimal = Field(gt=0, le=MAX_QTD)
+    peso_kg: Decimal | None = Field(default=None, ge=0, le=MAX_PESO_KG)
+    custo_unitario_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 
 class RealizadoMaterialUpdate(BaseModel):
-    quantidade: Decimal | None = Field(default=None, gt=0)
-    peso_kg: Decimal | None = Field(default=None, ge=0)
-    custo_unitario_real: Decimal | None = Field(default=None, ge=0)
+    quantidade: Decimal | None = Field(default=None, gt=0, le=MAX_QTD)
+    peso_kg: Decimal | None = Field(default=None, ge=0, le=MAX_PESO_KG)
+    custo_unitario_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 
@@ -34,16 +46,20 @@ class RealizadoMaterialResponse(BaseModel):
 
 class RealizadoOperacaoCreate(BaseModel):
     id_linha_operacao: int = Field(gt=0)
-    horas: Decimal = Field(gt=0)
-    tempo_setup_h: Decimal = Field(default=Decimal("0"), ge=0)
-    custo_hora_real: Decimal | None = Field(default=None, ge=0)
+    horas: Decimal = Field(gt=0, le=MAX_HORAS)
+    tempo_setup_h: Decimal = Field(default=Decimal("0"), ge=0, le=MAX_HORAS)
+    custo_hora_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 
 class RealizadoOperacaoUpdate(BaseModel):
-    horas: Decimal | None = Field(default=None, gt=0)
-    tempo_setup_h: Decimal | None = Field(default=None, ge=0)
-    custo_hora_real: Decimal | None = Field(default=None, ge=0)
+    horas: Decimal | None = Field(default=None, gt=0, le=MAX_HORAS)
+    tempo_setup_h: Decimal | None = Field(default=None, ge=0, le=MAX_HORAS)
+    custo_hora_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 
@@ -62,14 +78,18 @@ class RealizadoOperacaoResponse(BaseModel):
 
 class RealizadoServicoCreate(BaseModel):
     id_linha_servico: int = Field(gt=0)
-    quantidade: Decimal = Field(gt=0)
-    preco_unitario_real: Decimal | None = Field(default=None, ge=0)
+    quantidade: Decimal = Field(gt=0, le=MAX_QTD)
+    preco_unitario_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 
 class RealizadoServicoUpdate(BaseModel):
-    quantidade: Decimal | None = Field(default=None, gt=0)
-    preco_unitario_real: Decimal | None = Field(default=None, ge=0)
+    quantidade: Decimal | None = Field(default=None, gt=0, le=MAX_QTD)
+    preco_unitario_real: Decimal | None = Field(
+        default=None, ge=0, le=MAX_PRECO_UNIT,
+    )
     observacoes: str | None = None
 
 

@@ -2,18 +2,18 @@ export const MENU_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', section: 'Geral' },
   { key: 'clientes', label: 'Clientes', section: 'Planeamento' },
   { key: 'projetos', label: 'Projetos', section: 'Planeamento' },
-  { key: 'orcamentos', label: 'Orcamentos', section: 'Planeamento' },
-  { key: 'materiais', label: 'Materiais', section: 'Catalogo' },
-  { key: 'operacoes', label: 'Operacoes', section: 'Catalogo' },
-  { key: 'servicos', label: 'Servicos', section: 'Catalogo' },
-  { key: 'realizado', label: 'Realizado', section: 'Execucao' },
-  { key: 'comparacao', label: 'Comparacao', section: 'Analise' },
-  { key: 'ml', label: 'ML', section: 'Analise' },
+  { key: 'orcamentos', label: 'Orçamentos', section: 'Planeamento' },
+  { key: 'materiais', label: 'Materiais', section: 'Catálogo' },
+  { key: 'operacoes', label: 'Operações', section: 'Catálogo' },
+  { key: 'servicos', label: 'Serviços', section: 'Catálogo' },
+  { key: 'realizado', label: 'Realizado', section: 'Execução' },
+  { key: 'comparacao', label: 'Comparação', section: 'Análise' },
+  { key: 'ml', label: 'ML', section: 'Análise' },
   { key: 'utilizadores', label: 'Utilizadores', section: 'Admin' },
-  { key: 'definicoes', label: 'Definicoes', section: 'Admin' },
+  { key: 'definicoes', label: 'Definições', section: 'Admin' },
 ]
 
-export const SECTION_ORDER = ['Geral', 'Planeamento', 'Catalogo', 'Execucao', 'Analise', 'Admin']
+export const SECTION_ORDER = ['Geral', 'Planeamento', 'Catálogo', 'Execução', 'Análise', 'Admin']
 
 const ROLE_ALIASES = {
   admin: 'administrador',

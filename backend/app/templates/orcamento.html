@@ -2,87 +2,181 @@
 <html lang="pt">
 <head>
   <meta charset="utf-8">
-  <title>Orcamento {{ orcamento.id_orcamento }} v{{ orcamento.versao }}</title>
-  <style>
+  <title>Orcamento {{ orcamento.id_orcamento }} {{ versao_label }}</title>
+  <style type="text/css">
+    /* ======================================================================
+       Layout de pagina (xhtml2pdf).
+       Usa-se as margens da @page para o conteudo principal (assim a
+       paginacao automatica funciona quando o or\xe7amento ocupa mais
+       que uma pagina). O rodape vai num @frame dedicado para que
+       apare\xe7a em todas as paginas no mesmo sitio.
+       ====================================================================== */
     @page {
       size: A4;
-      margin: 2cm 1.8cm 2.4cm 1.8cm;
-      @frame footer {
-        -pdf-frame-content: footer-content;
-        bottom: 0.8cm;
-        margin-left: 1.8cm;
-        margin-right: 1.8cm;
+      margin: 1.7cm 1.8cm 2.2cm 1.8cm;
+      @frame footer_frame {
+        -pdf-frame-content: footer_content;
+        left: 1.8cm;
+        width: 17.4cm;
+        top: 27.5cm;
         height: 1.2cm;
       }
     }
-    body { font-family: Helvetica, Arial, sans-serif; color: #1f2933; font-size: 9.5pt; }
-    h1 { color: #0a2540; font-size: 18pt; margin: 0 0 4pt 0; }
-    h2 { color: #0a2540; font-size: 11pt; margin: 14pt 0 6pt 0;
-         border-bottom: 1px solid #d8e0e8; padding-bottom: 2pt; }
+
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      color: #1f2933;
+      font-size: 9.5pt;
+      line-height: 1.35;
+    }
+
+    h1 {
+      color: #0a2540;
+      font-size: 18pt;
+      margin: 0 0 4pt 0;
+      font-weight: bold;
+    }
+    h2 {
+      color: #0a2540;
+      font-size: 10.5pt;
+      margin: 14pt 0 5pt 0;
+      padding-bottom: 2pt;
+      border-bottom: 1pt solid #d8e0e8;
+      font-weight: bold;
+    }
     p { margin: 2pt 0; }
-    .header { margin-bottom: 18pt; }
+
+    /* ----------------------- Cabecalho do orcamento ----------------------- */
+    .header { margin-bottom: 10pt; }
     .header-meta {
-      width: 100%; border-collapse: collapse; margin-top: 6pt;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4pt;
     }
     .header-meta td {
-      vertical-align: top; padding: 3pt 6pt 3pt 0; font-size: 9pt;
+      vertical-align: top;
+      padding: 2.5pt 6pt 2.5pt 0;
+      font-size: 9pt;
     }
-    .header-meta .label { color: #56636f; width: 90pt; }
+    .header-meta td.label {
+      color: #56636f;
+      width: 85pt;
+    }
     .badge {
-      display: inline-block; padding: 2pt 6pt; border-radius: 3pt;
-      font-size: 8pt; font-weight: bold; color: #fff; background: #2a7fbe;
+      display: inline-block;
+      padding: 1.5pt 5pt;
+      background: #2a7fbe;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: bold;
     }
-    table.lines { width: 100%; border-collapse: collapse; margin-top: 4pt; }
+
+    /* ------------------------- Tabelas de linhas -------------------------- */
+    table.lines {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 3pt;
+    }
     table.lines th {
-      background: #0a2540; color: #fff; font-weight: bold;
-      padding: 4pt 6pt; text-align: left; font-size: 8.5pt;
+      background: #0a2540;
+      color: #fff;
+      font-weight: bold;
+      padding: 4pt 5pt;
+      text-align: left;
+      font-size: 8pt;
     }
     table.lines td {
-      border-bottom: 1px solid #e5ebf0;
-      padding: 3pt 6pt; font-size: 9pt;
+      border-bottom: 1pt solid #e5ebf0;
+      padding: 4pt 5pt;
+      font-size: 8.5pt;
+      vertical-align: top;
     }
-    table.lines td.num, table.lines th.num { text-align: right; }
+    table.lines td.num,
+    table.lines th.num { text-align: right; }
+    table.lines td.code {
+      font-size: 6.5pt;
+      font-family: "Courier New", Courier, monospace;
+      color: #2a3a4a;
+      word-wrap: break-word;
+      word-break: break-all;
+      white-space: normal;
+      letter-spacing: -0.2pt;
+    }
     table.lines tr.subtotal td {
-      font-weight: bold; background: #f3f7fa;
+      font-weight: bold;
+      background: #f3f7fa;
       border-top: 1.5pt solid #0a2540;
+      border-bottom: none;
+      padding: 5pt 5pt;
+    }
+
+    /* --------------------------- Totais finais --------------------------- */
+    .totals-wrap {
+      margin-top: 14pt;
+      width: 100%;
     }
     .totals-table {
-      width: 50%; margin-left: 50%; margin-top: 18pt;
+      width: 50%;
+      margin-left: 50%;
       border-collapse: collapse;
     }
     .totals-table td {
-      padding: 4pt 8pt; font-size: 9.5pt;
+      padding: 5pt 8pt;
+      font-size: 9.5pt;
+    }
+    .totals-table td.label {
+      color: #56636f;
+      text-align: right;
+    }
+    .totals-table td.value {
+      text-align: right;
+      font-weight: bold;
+      width: 35%;
     }
     .totals-table tr.grand td {
-      background: #0a2540; color: #fff;
-      font-size: 11pt; font-weight: bold;
+      background: #0a2540;
+      color: #fff;
+      font-size: 11pt;
+      font-weight: bold;
+      padding: 7pt 8pt;
     }
-    .totals-table td.label { color: #56636f; text-align: right; }
-    .totals-table td.value { text-align: right; font-weight: bold; }
+
+    /* --------------------------- Observacoes ---------------------------- */
     .empty {
-      color: #8896a3; font-style: italic; padding: 6pt 0;
+      color: #8896a3;
+      font-style: italic;
+      padding: 4pt 0;
+      font-size: 8.5pt;
     }
     .observacoes {
-      margin-top: 14pt; padding: 8pt;
-      background: #f7f9fb; border-left: 3pt solid #2a7fbe;
-      font-size: 9pt;
+      margin-top: 14pt;
+      padding: 7pt 9pt;
+      background: #f7f9fb;
+      border-left: 3pt solid #2a7fbe;
+      font-size: 8.5pt;
     }
-    #footer-content {
-      color: #8896a3; font-size: 7.5pt; text-align: center;
-      border-top: 0.5pt solid #d8e0e8; padding-top: 4pt;
+
+    /* ----------------------------- Footer ------------------------------- */
+    #footer_content {
+      color: #8896a3;
+      font-size: 7pt;
+      text-align: center;
+      padding-top: 4pt;
+      border-top: 0.5pt solid #d8e0e8;
     }
   </style>
 </head>
 <body>
 
+<!-- ============================== CABECALHO ============================== -->
 <div class="header">
-  <h1>SI-AOM — Orcamento</h1>
+  <h1>SI-AOM &mdash; Orcamento</h1>
   <table class="header-meta">
     <tr>
       <td class="label">Numero:</td>
       <td><strong>#{{ orcamento.id_orcamento }}</strong></td>
       <td class="label">Versao:</td>
-      <td><strong>{{ orcamento.versao }}</strong></td>
+      <td><strong>{{ versao_label }}</strong></td>
     </tr>
     <tr>
       <td class="label">Estado:</td>
@@ -123,19 +217,30 @@
   </table>
 </div>
 
+<!-- ============================== MATERIAIS ============================== -->
 <h2>Materiais</h2>
 {% if materiais %}
 <table class="lines">
+  <colgroup>
+    <col style="width: 24%;">
+    <col style="width: 34%;">
+    <col style="width: 11%;">
+    <col style="width: 14%;">
+    <col style="width: 17%;">
+  </colgroup>
   <thead>
     <tr>
-      <th>Codigo</th><th>Designacao</th>
-      <th class="num">Qtd.</th><th class="num">Pr. Unit.</th><th class="num">Total</th>
+      <th>Codigo</th>
+      <th>Designacao</th>
+      <th class="num">Qtd.</th>
+      <th class="num">Pr. Unit.</th>
+      <th class="num">Total</th>
     </tr>
   </thead>
   <tbody>
     {% for l in materiais %}
     <tr>
-      <td>{{ l.codigo }}</td>
+      <td class="code">{{ l.codigo }}</td>
       <td>{{ l.nome }}</td>
       <td class="num">{{ "{:,.2f}".format(l.quantidade|float) }}</td>
       <td class="num">{{ "{:,.4f}".format(l.preco_unitario_snapshot|float) }} &euro;</td>
@@ -152,20 +257,32 @@
 <p class="empty">Sem linhas de material.</p>
 {% endif %}
 
+<!-- ============================== OPERACOES ============================== -->
 <h2>Operacoes</h2>
 {% if operacoes %}
 <table class="lines">
+  <colgroup>
+    <col style="width: 20%;">
+    <col style="width: 28%;">
+    <col style="width: 10%;">
+    <col style="width: 12%;">
+    <col style="width: 14%;">
+    <col style="width: 16%;">
+  </colgroup>
   <thead>
     <tr>
-      <th>Codigo</th><th>Operacao</th>
-      <th class="num">Horas</th><th class="num">Setup (h)</th>
-      <th class="num">Custo/h</th><th class="num">Total</th>
+      <th>Codigo</th>
+      <th>Operacao</th>
+      <th class="num">Horas</th>
+      <th class="num">Setup (h)</th>
+      <th class="num">Custo/h</th>
+      <th class="num">Total</th>
     </tr>
   </thead>
   <tbody>
     {% for l in operacoes %}
     <tr>
-      <td>{{ l.codigo }}</td>
+      <td class="code">{{ l.codigo }}</td>
       <td>{{ l.nome }}</td>
       <td class="num">{{ "{:,.2f}".format(l.horas|float) }}</td>
       <td class="num">{{ "{:,.2f}".format(l.tempo_setup_h|float) }}</td>
@@ -183,19 +300,30 @@
 <p class="empty">Sem linhas de operacao.</p>
 {% endif %}
 
+<!-- ============================== SERVICOS =============================== -->
 <h2>Servicos</h2>
 {% if servicos %}
 <table class="lines">
+  <colgroup>
+    <col style="width: 24%;">
+    <col style="width: 34%;">
+    <col style="width: 11%;">
+    <col style="width: 14%;">
+    <col style="width: 17%;">
+  </colgroup>
   <thead>
     <tr>
-      <th>Codigo</th><th>Servico</th>
-      <th class="num">Qtd.</th><th class="num">Pr. Unit.</th><th class="num">Total</th>
+      <th>Codigo</th>
+      <th>Servico</th>
+      <th class="num">Qtd.</th>
+      <th class="num">Pr. Unit.</th>
+      <th class="num">Total</th>
     </tr>
   </thead>
   <tbody>
     {% for l in servicos %}
     <tr>
-      <td>{{ l.codigo }}</td>
+      <td class="code">{{ l.codigo }}</td>
       <td>{{ l.nome }}</td>
       <td class="num">{{ "{:,.2f}".format(l.quantidade|float) }}</td>
       <td class="num">{{ "{:,.2f}".format(l.preco_unitario_snapshot|float) }} &euro;</td>
@@ -212,22 +340,25 @@
 <p class="empty">Sem linhas de servico.</p>
 {% endif %}
 
-<table class="totals-table">
-  <tr>
-    <td class="label">Custo total orcado:</td>
-    <td class="value">{{ "{:,.2f}".format(orcamento.custo_total_orcado|float) }} &euro;</td>
-  </tr>
-  {% if orcamento.margem_percentual %}
-  <tr>
-    <td class="label">Margem aplicada:</td>
-    <td class="value">{{ "{:,.2f}".format(orcamento.margem_percentual|float) }} %</td>
-  </tr>
-  {% endif %}
-  <tr class="grand">
-    <td class="label" style="color: #fff;">Preco de venda:</td>
-    <td class="value">{{ "{:,.2f}".format(orcamento.preco_venda|float) }} &euro;</td>
-  </tr>
-</table>
+<!-- =============================== TOTAIS ================================ -->
+<div class="totals-wrap">
+  <table class="totals-table">
+    <tr>
+      <td class="label">Custo total orcado:</td>
+      <td class="value">{{ "{:,.2f}".format(orcamento.custo_total_orcado|float) }} &euro;</td>
+    </tr>
+    {% if orcamento.margem_percentual %}
+    <tr>
+      <td class="label">Margem aplicada:</td>
+      <td class="value">{{ "{:,.2f}".format(orcamento.margem_percentual|float) }} %</td>
+    </tr>
+    {% endif %}
+    <tr class="grand">
+      <td class="label" style="color: #fff;">Preco de venda:</td>
+      <td class="value">{{ "{:,.2f}".format(orcamento.preco_venda|float) }} &euro;</td>
+    </tr>
+  </table>
+</div>
 
 {% if orcamento.observacoes %}
 <div class="observacoes">
@@ -236,10 +367,12 @@
 </div>
 {% endif %}
 
-<div id="footer-content">
+<!-- =============================== FOOTER ================================ -->
+<!-- Movido para footer_frame via -pdf-frame-content; nao aparece no fluxo. -->
+<div id="footer_content">
   SI-AOM v0.1.0 &middot; Documento gerado em {{ data_emissao }}
-  &middot; Or&ccedil;amento #{{ orcamento.id_orcamento }} v{{ orcamento.versao }}
-  &middot; <pdf:pagenumber> / <pdf:pagecount>
+  &middot; Or&ccedil;amento #{{ orcamento.id_orcamento }} {{ versao_label }}
+  &middot; Pagina <pdf:pagenumber> de <pdf:pagecount>
 </div>
 
 </body>

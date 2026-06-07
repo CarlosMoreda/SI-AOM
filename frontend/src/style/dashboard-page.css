@@ -148,7 +148,7 @@
 
 .menu-item.active {
   color: #06131d;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary-dark);
   border-color: transparent;
   border-left-color: transparent;
 }
@@ -337,7 +337,7 @@ button {
   gap: 8px;
   padding: 9px 13px;
   border: 1px solid transparent;
-  background: linear-gradient(135deg, var(--primary-dark), var(--accent));
+  background: var(--primary-dark);
   color: #041019;
   font-weight: 800;
   cursor: pointer;
@@ -476,6 +476,77 @@ tbody tr:hover td {
   max-width: 220px;
 }
 
+.clientes-table-wrap {
+  overflow-x: hidden;
+}
+
+.clientes-table {
+  table-layout: fixed;
+}
+
+.clientes-table th,
+.clientes-table td {
+  padding: 8px 7px;
+  font-size: 0.82rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.clientes-table th:nth-child(1),
+.clientes-table td:nth-child(1) {
+  width: 5%;
+}
+
+.clientes-table th:nth-child(2),
+.clientes-table td:nth-child(2) {
+  width: 17%;
+}
+
+.clientes-table th:nth-child(3),
+.clientes-table td:nth-child(3) {
+  width: 8%;
+}
+
+.clientes-table th:nth-child(4),
+.clientes-table td:nth-child(4) {
+  width: 15%;
+}
+
+.clientes-table th:nth-child(5),
+.clientes-table td:nth-child(5) {
+  width: 10%;
+}
+
+.clientes-table th:nth-child(6),
+.clientes-table td:nth-child(6) {
+  width: 19%;
+}
+
+.clientes-table th:nth-child(7),
+.clientes-table td:nth-child(7) {
+  width: 6%;
+}
+
+.clientes-table th:nth-child(8),
+.clientes-table td:nth-child(8) {
+  width: 8%;
+}
+
+.clientes-table th:nth-child(9),
+.clientes-table td:nth-child(9) {
+  width: 12%;
+}
+
+.clientes-table .row-actions {
+  gap: 4px;
+}
+
+.clientes-table .btn-xs {
+  min-height: 28px;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+}
+
 .row-actions {
   display: flex;
   gap: 6px;
@@ -544,7 +615,7 @@ tbody tr:hover td {
 
 .tab-btn.active {
   color: #041019;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--primary-dark);
 }
 
 .add-line-form {
@@ -681,9 +752,9 @@ tbody tr:hover td {
   white-space: nowrap;
 }
 
-/* Estados do ciclo de vida do orcamento (relatorio 3.5) e do projeto. */
+/* Estados do ciclo de vida do orçamento (relatório 3.5) e do projeto. */
 
-/* Sucesso: cliente adjudicou ou trabalho concluido com sucesso. */
+/* Sucesso: cliente adjudicou ou trabalho concluído com sucesso. */
 .badge-aprovado,
 .badge-adjudicado,
 .badge-concluido {
@@ -692,15 +763,15 @@ tbody tr:hover td {
   border-color: rgba(120, 223, 169, 0.28);
 }
 
-/* Em curso: trabalho em producao. */
+/* Em curso: trabalho em produção. */
 .badge-em_execucao {
   color: var(--warning);
   background: var(--warning-soft);
   border-color: rgba(240, 180, 84, 0.28);
 }
 
-/* Em fluxo / em analise: orcamento em preparacao, revisao, ja validado ou
-   enviado ao cliente; tambem catalogo material/gestor. */
+/* Em fluxo / em análise: orçamento em preparação, revisão, já validado ou
+   enviado ao cliente; também catálogo material/gestor. */
 .badge-em_analise,
 .badge-em_preparacao,
 .badge-em_revisao,
@@ -1094,12 +1165,31 @@ tbody tr:hover td {
   background: var(--surface-soft);
 }
 
-.ml-fieldset legend {
-  padding: 0 6px;
+.ml-fieldset-title {
+  margin: 0 0 12px;
   color: var(--primary);
   font-size: 0.82rem;
+  line-height: 1.2;
   font-weight: 850;
   text-transform: uppercase;
+}
+
+.ml-fieldset .form-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.ml-fieldset label {
+  min-width: 0;
+  grid-template-rows: 22px 50px minmax(18px, auto);
+  gap: 6px;
+  align-content: start;
+}
+
+.ml-fieldset input,
+.ml-fieldset select {
+  min-height: 50px;
 }
 
 .ml-hint {
@@ -1490,7 +1580,8 @@ tbody tr:hover td {
   .content-grid,
   .compare-grid,
   .project-kpi-grid,
-  .ml-result-grid {
+  .ml-result-grid,
+  .ml-fieldset .form-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1517,6 +1608,7 @@ tbody tr:hover td {
   .compare-grid,
   .project-kpi-grid,
   .ml-result-grid,
+  .ml-fieldset .form-row,
   .analytics-kpi-grid,
   .analytics-lines-controls {
     grid-template-columns: 1fr;

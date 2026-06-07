@@ -10,6 +10,13 @@ import {
 
 const PERFIS = ['administrador', 'orcamentista', 'producao', 'gestor']
 
+const PERFIL_LABELS = {
+  administrador: 'Administrador',
+  orcamentista: 'Orçamentista',
+  producao: 'Produção',
+  gestor: 'Gestor',
+}
+
 const EMPTY_FORM = {
   nome: '',
   email: '',
@@ -149,12 +156,12 @@ export default function UtilizadoresModule({ token }) {
               </label>
               {!editingId && (
                 <label>
-                  Email *
+                  E-mail *
                   <input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} required />
                 </label>
               )}
               <label>
-                {editingId ? 'Nova password (opcional)' : 'Password *'}
+                {editingId ? 'Nova palavra-passe (opcional)' : 'Palavra-passe *'}
                 <input
                   type="password"
                   value={form.password}
@@ -165,14 +172,14 @@ export default function UtilizadoresModule({ token }) {
               <label>
                 Perfil
                 <select value={form.perfil} onChange={(e) => setField('perfil', e.target.value)}>
-                  {PERFIS.map((p) => <option key={p} value={p}>{p}</option>)}
+                  {PERFIS.map((p) => <option key={p} value={p}>{PERFIL_LABELS[p] || p}</option>)}
                 </select>
               </label>
               <label>
                 Ativo
                 <select value={String(form.ativo)} onChange={(e) => setField('ativo', e.target.value === 'true')}>
                   <option value="true">Sim</option>
-                  <option value="false">Nao</option>
+                  <option value="false">Não</option>
                 </select>
               </label>
             </div>
@@ -189,11 +196,11 @@ export default function UtilizadoresModule({ token }) {
               <tr>
                 <th>ID</th>
                 <th>Nome</th>
-                <th>Email</th>
+                <th>E-mail</th>
                 <th>Perfil</th>
                 <th>Ativo</th>
                 <th>Criado</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -202,8 +209,8 @@ export default function UtilizadoresModule({ token }) {
                   <td>{i.id_utilizador}</td>
                   <td>{i.nome}</td>
                   <td>{i.email}</td>
-                  <td><span className={`badge badge-${i.perfil}`}>{i.perfil}</span></td>
-                  <td>{i.ativo ? 'Sim' : 'Nao'}</td>
+                  <td><span className={`badge badge-${i.perfil}`}>{PERFIL_LABELS[i.perfil] || i.perfil}</span></td>
+                  <td>{i.ativo ? 'Sim' : 'Não'}</td>
                   <td>{formatDate(i.criado_em)}</td>
                   <td>
                     <div className="row-actions">

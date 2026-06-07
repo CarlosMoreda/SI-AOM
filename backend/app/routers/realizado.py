@@ -33,6 +33,7 @@ from app.schemas.realizado import (
     RealizadoServicoResponse,
     RealizadoServicoUpdate,
 )
+from app.services.orcamento_service import tentar_transicionar_para_concluido
 
 router = APIRouter()
 
@@ -237,6 +238,9 @@ def criar_realizado_material(
 
     db.add(registo)
     try:
+        db.flush()
+        # Se este foi o ultimo realizado em falta, fecha o orcamento.
+        tentar_transicionar_para_concluido(db, linha.id_orcamento)
         db.commit()
         db.refresh(registo)
     except IntegrityError:
@@ -369,6 +373,8 @@ def criar_realizado_operacao(
 
     db.add(registo)
     try:
+        db.flush()
+        tentar_transicionar_para_concluido(db, linha.id_orcamento)
         db.commit()
         db.refresh(registo)
     except IntegrityError:
@@ -500,6 +506,8 @@ def criar_realizado_servico(
 
     db.add(registo)
     try:
+        db.flush()
+        tentar_transicionar_para_concluido(db, linha.id_orcamento)
         db.commit()
         db.refresh(registo)
     except IntegrityError:

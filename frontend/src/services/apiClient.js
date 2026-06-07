@@ -10,11 +10,11 @@ function toApiUrl(path) {
 }
 
 function friendlyHttpMessage(status) {
-  if (status === 401) return 'Sessao expirada. Volta a iniciar sessao.'
-  if (status === 403) return 'Sem permissao para executar esta operacao.'
-  if (status === 404) return 'Recurso nao encontrado.'
-  if (status === 409) return 'Operacao em conflito com o estado actual dos dados.'
-  if (status === 422) return 'Dados invalidos. Verifica os campos preenchidos.'
+  if (status === 401) return 'Sessão expirada. Volta a iniciar sessão.'
+  if (status === 403) return 'Sem permissão para executar esta operação.'
+  if (status === 404) return 'Recurso não encontrado.'
+  if (status === 409) return 'Operação em conflito com o estado atual dos dados.'
+  if (status === 422) return 'Dados inválidos. Verifica os campos preenchidos.'
   if (status >= 500) return 'Erro no servidor. Tenta novamente em alguns segundos.'
   return `Erro HTTP ${status}`
 }
@@ -40,10 +40,10 @@ export async function apiRequest(path, { method = 'GET', token, body } = {}) {
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch {
-    // fetch lanca TypeError quando nao consegue contactar o servidor
+    // fetch lança TypeError quando não consegue contactar o servidor
     // (offline, CORS, backend em baixo, DNS, etc.).
     throw new ApiError(
-      'Nao foi possivel contactar o servidor. Verifica a tua ligacao ou se o backend esta a correr.',
+      'Não foi possível contactar o servidor. Verifica a tua ligação ou se o backend está a correr.',
       { status: 0, code: 'network' },
     )
   }
@@ -66,7 +66,7 @@ export async function apiRequest(path, { method = 'GET', token, body } = {}) {
       }
     }
 
-    // Sessao expirada/invalida: notifica os consumidores (ex: useAuth) para
+    // Sessão expirada/inválida: notifica os consumidores (ex: useAuth) para
     // que possam invalidar o token e empurrar o utilizador para o login.
     if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('siaom:unauthorized'))

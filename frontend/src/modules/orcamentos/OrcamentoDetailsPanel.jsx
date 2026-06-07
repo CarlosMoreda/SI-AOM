@@ -1,6 +1,12 @@
-import { formatMoney } from '../../utils/formatters'
+import { formatMoney, formatVersionLabel } from '../../utils/formatters'
 
 const DETAIL_TABS = ['materiais', 'operacoes', 'servicos']
+
+const DETAIL_TAB_LABELS = {
+  materiais: 'Materiais',
+  operacoes: 'Operações',
+  servicos: 'Serviços',
+}
 
 export default function OrcamentoDetailsPanel({
   selectedOrc,
@@ -33,18 +39,18 @@ export default function OrcamentoDetailsPanel({
   return (
     <div className="panel orc-details-panel">
       <div className="panel-head">
-        <h3>Orcamento #{selectedOrc.id_orcamento} - v{selectedOrc.versao}</h3>
+        <h3>Orçamento #{selectedOrc.id_orcamento} - {formatVersionLabel(selectedOrc.versao)}</h3>
         <div className="orc-details-badges">
           <span className="kpi-mini">Materiais: {formatMoney(selectedOrc.custo_total_materiais)}</span>
-          <span className="kpi-mini">Operacoes: {formatMoney(selectedOrc.custo_total_operacoes)}</span>
-          <span className="kpi-mini">Servicos: {formatMoney(selectedOrc.custo_total_servicos)}</span>
+          <span className="kpi-mini">Operações: {formatMoney(selectedOrc.custo_total_operacoes)}</span>
+          <span className="kpi-mini">Serviços: {formatMoney(selectedOrc.custo_total_servicos)}</span>
           {onExportPdf && (
             <button
               type="button"
               className="btn-xs"
               onClick={onExportPdf}
               disabled={exportingPdf}
-              title="Exportar este orcamento para PDF"
+              title="Exportar este orçamento para PDF"
             >
               {exportingPdf ? 'A gerar PDF...' : 'Exportar PDF'}
             </button>
@@ -60,7 +66,7 @@ export default function OrcamentoDetailsPanel({
             className={`tab-btn ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {DETAIL_TAB_LABELS[tab] || tab}
           </button>
         ))}
       </div>
@@ -100,7 +106,7 @@ export default function OrcamentoDetailsPanel({
             <input
               type="number"
               step="0.01"
-              placeholder="Area (m2)"
+              placeholder="Área (m2)"
               min="0"
               value={addMatForm.area_m2 ?? ''}
               onChange={(e) => setAddMatForm((f) => ({ ...f, area_m2: e.target.value }))}
@@ -108,7 +114,7 @@ export default function OrcamentoDetailsPanel({
             <input
               type="number"
               step="0.01"
-              placeholder="Desperdicio %"
+              placeholder="Desperdício %"
               min="0"
               value={addMatForm.desperdicio_percent}
               onChange={(e) => setAddMatForm((f) => ({ ...f, desperdicio_percent: e.target.value }))}
@@ -129,9 +135,9 @@ export default function OrcamentoDetailsPanel({
                   <th>ID Material</th>
                   <th>Qtd</th>
                   <th>Peso (kg)</th>
-                  <th>Area (m2)</th>
-                  <th>Desperd.%</th>
-                  <th>Preco Unit.</th>
+                  <th>Área (m2)</th>
+                  <th>Desperdício %</th>
+                  <th>Preço Unit.</th>
                   <th>Custo Total</th>
                   <th>Obs.</th>
                   <th></th>
@@ -175,7 +181,7 @@ export default function OrcamentoDetailsPanel({
               onChange={(e) => setAddOpForm((f) => ({ ...f, id_operacao: e.target.value }))}
               required
             >
-              <option value="">Selecionar operacao</option>
+              <option value="">Selecionar operação</option>
               {catalogOperacoes.map((o) => (
                 <option key={o.id_operacao} value={o.id_operacao}>{o.codigo} - {o.nome}</option>
               ))}
@@ -210,7 +216,7 @@ export default function OrcamentoDetailsPanel({
               <thead>
                 <tr>
                   <th>ID Linha</th>
-                  <th>ID Operacao</th>
+                  <th>ID Operação</th>
                   <th>Horas</th>
                   <th>Setup h</th>
                   <th>Custo/h</th>
@@ -240,7 +246,7 @@ export default function OrcamentoDetailsPanel({
                     </td>
                   </tr>
                 ))}
-                {linhasOperacoes.length === 0 && <tr><td colSpan={8}>Sem linhas de operacao.</td></tr>}
+                {linhasOperacoes.length === 0 && <tr><td colSpan={8}>Sem linhas de operação.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -255,7 +261,7 @@ export default function OrcamentoDetailsPanel({
               onChange={(e) => setAddSvcForm((f) => ({ ...f, id_servico: e.target.value }))}
               required
             >
-              <option value="">Selecionar servico</option>
+              <option value="">Selecionar serviço</option>
               {catalogServicos.map((s) => (
                 <option key={s.id_servico} value={s.id_servico}>{s.codigo} - {s.nome}</option>
               ))}
@@ -282,9 +288,9 @@ export default function OrcamentoDetailsPanel({
               <thead>
                 <tr>
                   <th>ID Linha</th>
-                  <th>ID Servico</th>
+                  <th>ID Serviço</th>
                   <th>Qtd</th>
-                  <th>Preco Unit.</th>
+                  <th>Preço Unit.</th>
                   <th>Custo Total</th>
                   <th>Obs.</th>
                   <th></th>
@@ -310,7 +316,7 @@ export default function OrcamentoDetailsPanel({
                     </td>
                   </tr>
                 ))}
-                {linhasServicos.length === 0 && <tr><td colSpan={7}>Sem linhas de servico.</td></tr>}
+                {linhasServicos.length === 0 && <tr><td colSpan={7}>Sem linhas de serviço.</td></tr>}
               </tbody>
             </table>
           </div>

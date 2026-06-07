@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { formatDate } from '../utils/formatters'
+import { formatDate, formatStatusLabel } from '../utils/formatters'
 import { listClientes } from '../services/clienteService'
 import {
   createProject,
@@ -185,7 +185,7 @@ export default function ProjetosModule({ token }) {
 
         <div className="module-toolbar">
           <input
-            placeholder="Pesquisar referencia ou designacao..."
+            placeholder="Pesquisar referência ou designação..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -198,11 +198,11 @@ export default function ProjetosModule({ token }) {
           <form className="inline-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <label>
-                Referencia *
+                Referência *
                 <input value={form.referencia} onChange={(e) => setField('referencia', e.target.value)} required />
               </label>
               <label>
-                Designacao *
+                Designação *
                 <input value={form.designacao} onChange={(e) => setField('designacao', e.target.value)} required />
               </label>
               <label>
@@ -224,12 +224,12 @@ export default function ProjetosModule({ token }) {
                 Estado
                 <select value={form.estado} onChange={(e) => setField('estado', e.target.value)}>
                   {ESTADOS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                    <option key={s} value={s}>{formatStatusLabel(s)}</option>
                   ))}
                 </select>
               </label>
               <label>
-                Data inicio
+                Data início
                 <input type="date" value={form.data_inicio} onChange={(e) => setField('data_inicio', e.target.value)} />
               </label>
               <label>
@@ -245,11 +245,11 @@ export default function ProjetosModule({ token }) {
                 <input value={form.material_principal} onChange={(e) => setField('material_principal', e.target.value)} />
               </label>
               <label>
-                Tratamento superficie
+                Tratamento superfície
                 <input value={form.tratamento_superficie} onChange={(e) => setField('tratamento_superficie', e.target.value)} />
               </label>
               <label>
-                Numero de pecas
+                Número de peças
                 <input type="number" min="0" step="1" value={form.numero_pecas} onChange={(e) => setField('numero_pecas', e.target.value)} />
               </label>
               <label>
@@ -258,12 +258,12 @@ export default function ProjetosModule({ token }) {
               </label>
             </div>
             <label>
-              Observacoes
+              Observações
               <input value={form.observacoes} onChange={(e) => setField('observacoes', e.target.value)} />
             </label>
             <div className="form-actions">
               <button type="submit" disabled={saving}>
-                {saving ? 'A gravar...' : editingId ? 'Guardar alteracoes' : 'Criar projeto'}
+                {saving ? 'A gravar...' : editingId ? 'Guardar alterações' : 'Criar projeto'}
               </button>
               <button type="button" className="btn-secondary" onClick={cancelForm}>
                 Cancelar
@@ -277,15 +277,15 @@ export default function ProjetosModule({ token }) {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Referencia</th>
-                <th>Designacao</th>
+                <th>Referência</th>
+                <th>Designação</th>
                 <th>Cliente</th>
                 <th>Tipologia</th>
                 <th>Estado</th>
-                <th>Data Inicio</th>
-                <th>Data Entrega</th>
+                <th>Data Início</th>
+                <th>Data de Entrega</th>
                 <th>Criado</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -296,7 +296,7 @@ export default function ProjetosModule({ token }) {
                   <td>{p.designacao}</td>
                   <td>{clientById.get(p.id_cliente)?.nome || '-'}</td>
                   <td>{p.tipologia || '-'}</td>
-                  <td><span className={`badge badge-${p.estado}`}>{p.estado}</span></td>
+                  <td><span className={`badge badge-${p.estado}`}>{formatStatusLabel(p.estado)}</span></td>
                   <td>{formatDate(p.data_inicio)}</td>
                   <td>{formatDate(p.data_entrega_prevista)}</td>
                   <td>{formatDate(p.criado_em)}</td>

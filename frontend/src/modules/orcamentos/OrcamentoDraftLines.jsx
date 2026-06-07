@@ -22,7 +22,7 @@ export default function OrcamentoDraftLines({
   return (
     <div className="draft-lines-panel">
       <div className="draft-lines-head">
-        <strong>Linhas para criar com o orcamento</strong>
+        <strong>Linhas para criar com o orçamento</strong>
         <span className="draft-lines-count">Total: {countDraftLines}</span>
       </div>
 
@@ -59,7 +59,7 @@ export default function OrcamentoDraftLines({
               type="number"
               step="0.01"
               min="0"
-              placeholder="Area (m2)"
+              placeholder="Área (m2)"
               value={draftMatForm.area_m2 ?? ''}
               onChange={(e) => setDraftMatForm((f) => ({ ...f, area_m2: e.target.value }))}
             />
@@ -67,7 +67,7 @@ export default function OrcamentoDraftLines({
               type="number"
               step="0.01"
               min="0"
-              placeholder="Desperdicio %"
+              placeholder="Desperdício %"
               value={draftMatForm.desperdicio_percent}
               onChange={(e) => setDraftMatForm((f) => ({ ...f, desperdicio_percent: e.target.value }))}
             />
@@ -87,8 +87,8 @@ export default function OrcamentoDraftLines({
                     <th>Material</th>
                     <th>Qtd</th>
                     <th>Peso (kg)</th>
-                    <th>Area (m2)</th>
-                    <th>Desperd.%</th>
+                    <th>Área (m2)</th>
+                    <th>Desperdício %</th>
                     <th>Obs.</th>
                     <th></th>
                   </tr>
@@ -116,13 +116,13 @@ export default function OrcamentoDraftLines({
         </div>
 
         <div>
-          <h4 className="draft-section-title">Operacoes</h4>
+          <h4 className="draft-section-title">Operações</h4>
           <div className="add-line-form">
             <select
               value={draftOpForm.id_operacao}
               onChange={(e) => setDraftOpForm((f) => ({ ...f, id_operacao: e.target.value }))}
             >
-              <option value="">Selecionar operacao</option>
+              <option value="">Selecionar operação</option>
               {catalogOperacoes.map((o) => (
                 <option key={o.id_operacao} value={o.id_operacao}>{o.codigo} - {o.nome}</option>
               ))}
@@ -156,7 +156,7 @@ export default function OrcamentoDraftLines({
               <table>
                 <thead>
                   <tr>
-                    <th>Operacao</th>
+                    <th>Operação</th>
                     <th>Horas</th>
                     <th>Setup h</th>
                     <th>Obs.</th>
@@ -184,13 +184,13 @@ export default function OrcamentoDraftLines({
         </div>
 
         <div>
-          <h4 className="draft-section-title">Servicos</h4>
+          <h4 className="draft-section-title">Serviços</h4>
           <div className="add-line-form">
             <select
               value={draftSvcForm.id_servico}
               onChange={(e) => setDraftSvcForm((f) => ({ ...f, id_servico: e.target.value }))}
             >
-              <option value="">Selecionar servico</option>
+              <option value="">Selecionar serviço</option>
               {catalogServicos.map((s) => (
                 <option key={s.id_servico} value={s.id_servico}>{s.codigo} - {s.nome}</option>
               ))}
@@ -216,7 +216,7 @@ export default function OrcamentoDraftLines({
               <table>
                 <thead>
                   <tr>
-                    <th>Servico</th>
+                    <th>Serviço</th>
                     <th>Qtd</th>
                     <th>Obs.</th>
                     <th></th>

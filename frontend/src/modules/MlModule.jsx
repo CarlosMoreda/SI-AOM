@@ -57,7 +57,7 @@ function sourceLabel(source) {
   if (source === 'dataset_csv') return 'CSV do dataset'
   if (source === 'base_dados') return 'dataset gerado da BD'
   if (source === 'modelo') return 'modelo treinado'
-  return 'indisponivel'
+  return 'indisponível'
 }
 
 export default function MlModule({ token, user }) {
@@ -108,15 +108,15 @@ export default function MlModule({ token, user }) {
 
   function getQualityLabel(quality) {
     if (quality === 'boa') return 'Boa'
-    if (quality === 'aceitavel') return 'Aceitavel'
+    if (quality === 'aceitavel') return 'Aceitável'
     if (quality === 'fraca') return 'Fraca'
     return 'Indeterminada'
   }
 
   function getConfidenceLabel(confidence) {
-    if (confidence >= 70) return 'Confianca alta'
-    if (confidence >= 45) return 'Confianca media'
-    return 'Confianca baixa'
+    if (confidence >= 70) return 'Confiança alta'
+    if (confidence >= 45) return 'Confiança média'
+    return 'Confiança baixa'
   }
 
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function MlModule({ token, user }) {
         }
       } catch (err) {
         if (!cancelled) {
-          setOptionsError(err.message || 'Erro ao carregar opcoes de ML.')
+          setOptionsError(err.message || 'Erro ao carregar opções de ML.')
           setOptions(DEFAULT_OPTIONS)
         }
       } finally {
@@ -204,7 +204,7 @@ export default function MlModule({ token, user }) {
   const handleTrain = useCallback(
     async (e) => {
       e.preventDefault()
-      if (!window.confirm('Iniciar treino dos modelos de previsao de orcamento?')) return
+      if (!window.confirm('Iniciar treino dos modelos de previsão de orçamento?')) return
       setTrainLoading(true)
       setTrainError('')
       setTrainResult(null)
@@ -217,7 +217,7 @@ export default function MlModule({ token, user }) {
           if (firstErr) setTrainError(firstErr.detail)
         }
       } catch (err) {
-        // err.message pode vir do apiClient (ja trata arrays de validacao)
+        // err.message pode vir do apiClient (já trata arrays de validação)
         setTrainError(err.message || 'Erro desconhecido ao contactar o servidor.')
       } finally {
         setTrainLoading(false)
@@ -234,7 +234,7 @@ export default function MlModule({ token, user }) {
           className={`tab-btn ${activeTab === 'prever' ? 'active' : ''}`}
           onClick={() => setActiveTab('prever')}
         >
-          Prever Orcamento
+          Prever Orçamento
         </button>
         {isAdmin && (
           <button
@@ -250,8 +250,8 @@ export default function MlModule({ token, user }) {
       {activeTab === 'prever' && (
         <div className="panel">
           <div className="panel-head">
-            <h3>Previsao de Orcamento</h3>
-            <span>Fluxo principal: estimativa inicial do custo (materiais, operacoes e servicos)</span>
+            <h3>Previsão de Orçamento</h3>
+            <span>Fluxo principal: estimativa inicial do custo (materiais, operações e serviços)</span>
           </div>
 
           {error && (
@@ -274,8 +274,8 @@ export default function MlModule({ token, user }) {
           )}
 
           <form onSubmit={handlePredict}>
-            <fieldset className="ml-fieldset">
-              <legend>Caracteristicas do Projeto</legend>
+            <section className="ml-fieldset" aria-labelledby="ml-project-features-title">
+              <h4 id="ml-project-features-title" className="ml-fieldset-title">Características do Projeto</h4>
               <div className="form-row">
                 <label>
                   Tipologia
@@ -303,7 +303,7 @@ export default function MlModule({ token, user }) {
                   {rangeText('peso_total_kg') && <small className="ml-range-note">{rangeText('peso_total_kg')}</small>}
                 </label>
                 <label>
-                  Area total (m2)
+                  Área total (m2)
                   <input
                     required
                     type="number" step="0.01" min={featureRange('area_total_m2')?.min ?? 0.01} max={featureRange('area_total_m2')?.max ?? undefined}
@@ -314,7 +314,7 @@ export default function MlModule({ token, user }) {
                   {rangeText('area_total_m2') && <small className="ml-range-note">{rangeText('area_total_m2')}</small>}
                 </label>
                 <label>
-                  N. de pecas
+                  N.º de peças
                   <input
                     required
                     type="number" min={featureRange('numero_pecas')?.min ?? 1} max={featureRange('numero_pecas')?.max ?? undefined}
@@ -332,7 +332,7 @@ export default function MlModule({ token, user }) {
                   </select>
                 </label>
                 <label>
-                  Tratamento superficie
+                  Tratamento de superfície
                   <select required disabled={optionsLoading} value={params.tratamento_superficie} onChange={(e) => setParam('tratamento_superficie', e.target.value)}>
                     <option value="">{optionsLoading ? 'A carregar...' : 'Selecionar'}</option>
                     {optionsFor('tratamentos').map((t) => <option key={t} value={t}>{t}</option>)}
@@ -350,11 +350,11 @@ export default function MlModule({ token, user }) {
                   {rangeText('lead_time') && <small className="ml-range-note">{rangeText('lead_time')}</small>}
                 </label>
               </div>
-            </fieldset>
+            </section>
 
             <div className="ml-action-row">
               <button type="submit" disabled={loading} className="ml-submit-button">
-                {loading ? 'A calcular...' : 'Prever orcamento'}
+                {loading ? 'A calcular...' : 'Prever orçamento'}
               </button>
             </div>
           </form>
@@ -362,7 +362,7 @@ export default function MlModule({ token, user }) {
           {result && (
             <div className="ml-result-box">
               <div className="ml-result-header">
-                <span>Orcamento Previsto pelo ML</span>
+                <span>Orçamento Previsto pelo ML</span>
                 <span className="ml-modelo">
                   {result.modelo_utilizado}
                   {result.modelo_versao ? ` - v${result.modelo_versao}` : ''}
@@ -372,7 +372,7 @@ export default function MlModule({ token, user }) {
 
               <div className="ml-confidence-box">
                 <div className="ml-confidence-head">
-                  <span>Confianca da previsao</span>
+                  <span>Confiança da previsão</span>
                   <strong>{Number(result.confianca_percentual || 0)}%</strong>
                 </div>
                 <div
@@ -420,7 +420,7 @@ export default function MlModule({ token, user }) {
                   </small>
                 </div>
                 <div className="ml-result-card">
-                  <p>Operacoes</p>
+                  <p>Operações</p>
                   <strong>{formatMoney(result.custo_operacoes)}</strong>
                   <small>
                     {result.custo_total > 0
@@ -429,7 +429,7 @@ export default function MlModule({ token, user }) {
                   </small>
                 </div>
                 <div className="ml-result-card">
-                  <p>Servicos</p>
+                  <p>Serviços</p>
                   <strong>{formatMoney(result.custo_servicos)}</strong>
                   <small>
                     {result.custo_total > 0
@@ -448,7 +448,7 @@ export default function MlModule({ token, user }) {
                       ? `${Number(result.tempo_previsto).toFixed(1)} h`
                       : '-'}
                   </strong>
-                  <small>execucao + setup</small>
+                  <small>execução + setup</small>
                 </div>
               </div>
 
@@ -463,18 +463,18 @@ export default function MlModule({ token, user }) {
                     <div
                       className="ml-barra-seg ml-barra-op"
                       style={{ width: `${(result.custo_operacoes / result.custo_total) * 100}%` }}
-                      title={`Operacoes: ${formatMoney(result.custo_operacoes)}`}
+                      title={`Operações: ${formatMoney(result.custo_operacoes)}`}
                     />
                     <div
                       className="ml-barra-seg ml-barra-svc"
                       style={{ width: `${(result.custo_servicos / result.custo_total) * 100}%` }}
-                      title={`Servicos: ${formatMoney(result.custo_servicos)}`}
+                      title={`Serviços: ${formatMoney(result.custo_servicos)}`}
                     />
                   </div>
                   <div className="ml-barra-legenda">
                     <span className="ml-leg-mat">Materiais</span>
-                    <span className="ml-leg-op">Operacoes</span>
-                    <span className="ml-leg-svc">Servicos</span>
+                    <span className="ml-leg-op">Operações</span>
+                    <span className="ml-leg-svc">Serviços</span>
                   </div>
                 </>
               )}
@@ -486,14 +486,14 @@ export default function MlModule({ token, user }) {
       {isAdmin && activeTab === 'treino' && (
         <div className="panel">
           <div className="panel-head">
-            <h3>Treinar Modelos de Previsao</h3>
-            <span>Apenas administradores - Treina o pipeline principal de custo de orcamento</span>
+            <h3>Treinar Modelos de Previsão</h3>
+            <span>Apenas administradores - Treina o pipeline principal de custo de orçamento</span>
           </div>
 
           <div className="panel ml-train-summary">
             <p className="ml-train-copy">
-              O treino usa todos os orcamentos existentes na BD (com custo_total_orcado &gt; 0) para aprender a relacao entre as caracteristicas do projeto e os custos.<br />
-              <strong>Recomendado treinar sempre que existirem novos orcamentos.</strong>
+              O treino usa todos os orçamentos existentes na BD (com custo_total_orcado &gt; 0) para aprender a relação entre as características do projeto e os custos.<br />
+              <strong>Recomendado treinar sempre que existirem novos orçamentos.</strong>
             </p>
           </div>
 
@@ -501,7 +501,7 @@ export default function MlModule({ token, user }) {
 
           <form onSubmit={handleTrain}>
             <button type="submit" disabled={trainLoading} className="ml-train-button">
-              {trainLoading ? 'A treinar... (aguarde)' : 'Treinar modelos de previsao'}
+              {trainLoading ? 'A treinar... (aguarde)' : 'Treinar modelos de previsão'}
             </button>
           </form>
 
@@ -532,7 +532,7 @@ export default function MlModule({ token, user }) {
               </div>
               {trainResult.success === trainResult.total && (
                 <p className="message success message-spaced">
-                  Modelos prontos. Ja pode usar a previsao de orcamento.
+                  Modelos prontos. Já pode usar a previsão de orçamento.
                 </p>
               )}
             </div>
@@ -542,6 +542,3 @@ export default function MlModule({ token, user }) {
     </div>
   )
 }
-
-
-

@@ -24,7 +24,7 @@ export function useAuth() {
       setToken(payload.access_token)
       return true
     } catch (err) {
-      setAuthError(err.message || 'Credenciais invalidas')
+      setAuthError(err.message || 'Credenciais inválidas')
       return false
     } finally {
       setAuthLoading(false)
@@ -47,7 +47,7 @@ export function useAuth() {
         clearToken()
         setToken('')
         setUser(null)
-        setAuthError(err.message || 'Sessao invalida')
+        setAuthError(err.message || 'Sessão inválida')
       } finally {
         if (!ignore) setAuthLoading(false)
       }
@@ -61,13 +61,13 @@ export function useAuth() {
   }, [token])
 
   // Se qualquer chamada da API devolver 401, o apiClient emite este evento
-  // e a sessao e terminada automaticamente.
+  // e a sessão é terminada automaticamente.
   useEffect(() => {
     const handler = () => {
       clearToken()
       setToken('')
       setUser(null)
-      setAuthError('Sessao expirada. Volta a iniciar sessao.')
+      setAuthError('Sessão expirada. Volta a iniciar sessão.')
     }
     window.addEventListener('siaom:unauthorized', handler)
     return () => window.removeEventListener('siaom:unauthorized', handler)

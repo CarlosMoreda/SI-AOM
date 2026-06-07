@@ -1,13 +1,14 @@
 import { apiRequest, API_BASE_URL, ApiError } from './apiClient.js'
+import { formatVersionLabel } from '../utils/formatters.js'
 
 export async function listOrcamentos(token) {
   return apiRequest('/orcamentos/', { token })
 }
 
 /**
- * Faz download do PDF do orcamento. Como o endpoint devolve binario,
- * nao podemos usar o apiRequest (que assume JSON). Em vez disso fazemos
- * fetch directo e tratamos a resposta como Blob.
+ * Faz download do PDF do orçamento. Como o endpoint devolve binário,
+ * não podemos usar o apiRequest (que assume JSON). Em vez disso fazemos
+ * fetch direto e tratamos a resposta como Blob.
  */
 export async function downloadOrcamentoPdf(token, idOrcamento, versao) {
   const url = `${API_BASE_URL}/orcamentos/${idOrcamento}/pdf`
@@ -18,7 +19,7 @@ export async function downloadOrcamentoPdf(token, idOrcamento, versao) {
     })
   } catch {
     throw new ApiError(
-      'Nao foi possivel contactar o servidor para gerar o PDF.',
+      'Não foi possível contactar o servidor para gerar o PDF.',
       { status: 0, code: 'network' },
     )
   }
@@ -27,18 +28,18 @@ export async function downloadOrcamentoPdf(token, idOrcamento, versao) {
     try {
       const body = await response.json()
       if (body?.detail) detail = body.detail
-    } catch { /* corpo nao e JSON, ignora */ }
+    } catch { /* corpo não é JSON, ignora */ }
     throw new ApiError(detail, { status: response.status, code: 'http' })
   }
   const blob = await response.blob()
   const objectUrl = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = objectUrl
-  a.download = `orcamento_${idOrcamento}_v${versao || '1'}.pdf`
+  a.download = `orcamento_${idOrcamento}_${formatVersionLabel(versao || '1')}.pdf`
   document.body.appendChild(a)
   a.click()
   a.remove()
-  // libertar memoria do blob apos o browser iniciar o download
+  // libertar memória do blob após o browser iniciar o download
   setTimeout(() => window.URL.revokeObjectURL(objectUrl), 1000)
 }
 

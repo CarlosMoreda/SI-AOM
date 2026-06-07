@@ -92,10 +92,10 @@ export default function ServicosModule({ token }) {
     try {
       if (editingId) {
         await updateServico(token, editingId, payload)
-        setSuccess('Servico atualizado.')
+        setSuccess('Serviço atualizado.')
       } else {
         await createServico(token, payload)
-        setSuccess('Servico criado.')
+        setSuccess('Serviço criado.')
       }
       cancelForm()
       await load()
@@ -107,12 +107,12 @@ export default function ServicosModule({ token }) {
   }
 
   async function handleDelete(item) {
-    if (!window.confirm(`Eliminar servico "${item.nome}"?`)) return
+    if (!window.confirm(`Eliminar serviço "${item.nome}"?`)) return
     setError('')
     setSuccess('')
     try {
       await deleteServico(token, item.id_servico)
-      setSuccess('Servico eliminado.')
+      setSuccess('Serviço eliminado.')
       await load()
     } catch (e) {
       setError(e.message)
@@ -130,7 +130,7 @@ export default function ServicosModule({ token }) {
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
-          <h3>Servicos</h3>
+          <h3>Serviços</h3>
           <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
         </div>
 
@@ -139,18 +139,18 @@ export default function ServicosModule({ token }) {
 
         <div className="module-toolbar">
           <input
-            placeholder="Pesquisar codigo ou nome..."
+            placeholder="Pesquisar código ou nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button type="button" onClick={openCreate}>+ Novo servico</button>
+          <button type="button" onClick={openCreate}>+ Novo serviço</button>
         </div>
 
         {showForm && (
           <form className="inline-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <label>
-                Codigo *
+                Código *
                 <input value={form.codigo} onChange={(e) => setField('codigo', e.target.value)} required />
               </label>
               <label>
@@ -162,14 +162,14 @@ export default function ServicosModule({ token }) {
                 <input value={form.unidade} onChange={(e) => setField('unidade', e.target.value)} required />
               </label>
               <label>
-                Preco unit. *
+                Preço unit. *
                 <input type="number" step="0.0001" min="0" value={form.preco_unitario_default} onChange={(e) => setField('preco_unitario_default', e.target.value)} required />
               </label>
               <label>
                 Ativo
                 <select value={String(form.ativo)} onChange={(e) => setField('ativo', e.target.value === 'true')}>
                   <option value="true">Sim</option>
-                  <option value="false">Nao</option>
+                  <option value="false">Não</option>
                 </select>
               </label>
             </div>
@@ -185,12 +185,12 @@ export default function ServicosModule({ token }) {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Codigo</th>
+                <th>Código</th>
                 <th>Nome</th>
                 <th>Unidade</th>
-                <th>Preco Unit.</th>
+                <th>Preço Unit.</th>
                 <th>Ativo</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -201,7 +201,7 @@ export default function ServicosModule({ token }) {
                   <td>{i.nome}</td>
                   <td>{i.unidade}</td>
                   <td>{formatMoney(i.preco_unitario_default)}</td>
-                  <td>{i.ativo ? 'Sim' : 'Nao'}</td>
+                  <td>{i.ativo ? 'Sim' : 'Não'}</td>
                   <td>
                     <div className="row-actions">
                       <button type="button" className="btn-xs" onClick={() => openEdit(i)}>Editar</button>
@@ -210,7 +210,7 @@ export default function ServicosModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={7}>Sem servicos.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={7}>Sem serviços.</td></tr>}
             </tbody>
           </table>
         </div>

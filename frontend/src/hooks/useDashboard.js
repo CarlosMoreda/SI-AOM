@@ -16,6 +16,7 @@ import {
 } from '../services/projectService'
 import { getRealizadoResumoBatch, normalizeOrcamentoIds } from '../services/realizadoService'
 import { listServicos } from '../services/servicoService'
+import { formatVersionLabel } from '../utils/formatters'
 
 const EMPTY_PROJECT_ANALYSIS = {
   totalOrcado: 0,
@@ -131,7 +132,7 @@ function buildProjectAnalysis(details, catalogs) {
 
   details.forEach((detail) => {
     const budget = detail.budget
-    const budgetLabel = `#${budget.id_orcamento} v${budget.versao}`
+    const budgetLabel = `#${budget.id_orcamento} ${formatVersionLabel(budget.versao)}`
 
     totalOrcado += toNumber(budget.custo_total_orcado)
     detail.materiais.forEach((linha) => {
@@ -166,13 +167,13 @@ function buildProjectAnalysis(details, catalogs) {
         tipo: 'operacao',
         id_orcamento: budget.id_orcamento,
         orcamentoLabel: budgetLabel,
-        itemLabel: item ? `${item.codigo} - ${item.nome}` : `Operacao #${linha.id_operacao}`,
+        itemLabel: item ? `${item.codigo} - ${item.nome}` : `Operação #${linha.id_operacao}`,
         processoLabel:
           processo === 'soldadura'
             ? 'Soldadura'
             : processo === 'pingamento'
               ? 'Pingamento'
-              : item?.categoria || 'Outras operacoes',
+              : item?.categoria || 'Outras operações',
         quantidadeLabel: `${horas.toFixed(2)} h`,
         quantidadeValor: horas,
         horasValor: horas,
@@ -191,8 +192,8 @@ function buildProjectAnalysis(details, catalogs) {
         tipo: 'servico',
         id_orcamento: budget.id_orcamento,
         orcamentoLabel: budgetLabel,
-        itemLabel: item ? `${item.codigo} - ${item.nome}` : `Servico #${linha.id_servico}`,
-        processoLabel: 'Servicos',
+        itemLabel: item ? `${item.codigo} - ${item.nome}` : `Serviço #${linha.id_servico}`,
+        processoLabel: 'Serviços',
         quantidadeLabel: `${quantidade.toFixed(2)} un`,
         quantidadeValor: quantidade,
         custo,
@@ -294,7 +295,7 @@ export function useDashboard(token, perfil) {
       setBudgetRealTotals(totalsByBudget)
     } catch (err) {
       setBudgetRealTotals(Object.fromEntries(budgetRows.map((budget) => [budget.id_orcamento, 0])))
-      setBudgetRealError(err.message || 'Nao foi possivel carregar custos reais dos orcamentos.')
+      setBudgetRealError(err.message || 'Não foi possível carregar custos reais dos orçamentos.')
     } finally {
       setBudgetRealLoading(false)
     }
@@ -307,7 +308,7 @@ export function useDashboard(token, perfil) {
     setDataError('')
     try {
       // Em paralelo: KPIs agregados (server-side), tendencia, e as listas
-      // usadas pelos selectores e analise de projeto.
+      // usadas pelos seletores e análise de projeto.
       const [kpis, recents, projectRows, budgetRows] = await Promise.all([
         getDashboardKpis(token),
         getRecentBudgets(token, 5),
@@ -320,7 +321,7 @@ export function useDashboard(token, perfil) {
       setBudgets(budgetRows)
       await loadBudgetRealTotals(budgetRows)
     } catch (err) {
-      setDataError(err.message || 'Nao foi possivel carregar dados')
+      setDataError(err.message || 'Não foi possível carregar dados')
     } finally {
       setLoadingData(false)
     }

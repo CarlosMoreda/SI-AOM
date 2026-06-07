@@ -282,7 +282,7 @@ def train_one_dataset(
         max_depth=max_depth,
         min_samples_leaf=min_samples_leaf,
         random_state=random_state,
-        n_jobs=1,
+        n_jobs=-1,  # usa todos os cores disponiveis (treino muito mais rapido)
     )
 
     pipeline = Pipeline(

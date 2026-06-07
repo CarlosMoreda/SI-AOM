@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { formatDate, formatMoney } from '../utils/formatters'
-import { listProjects } from '../services/projectService'
+import { formatDate, formatMoney, formatStatusLabel, formatVersionLabel } from '../utils/formatters'
+import { listProjectBudgets, listProjects } from '../services/projectService'
 import { listOrcamentos, listOrcamentoMateriais, listOrcamentoOperacoes, listOrcamentoServicos } from '../services/orcamentoService'
 import { listMateriais } from '../services/materialService'
 import { listOperacoes } from '../services/operacaoService'
@@ -18,6 +18,12 @@ import {
   listRealizadoServico,
   getRealizadoResumo,
 } from '../services/realizadoService'
+
+const TAB_LABELS = {
+  materiais: 'Materiais',
+  operacoes: 'Operações',
+  servicos: 'Serviços',
+}
 
 export default function RealizadoModule({ token }) {
   const [projects, setProjects] = useState([])
@@ -42,6 +48,7 @@ export default function RealizadoModule({ token }) {
 
   const [resumo, setResumo] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [loadingOrcamentos, setLoadingOrcamentos] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -49,6 +56,20 @@ export default function RealizadoModule({ token }) {
   const [addMatForms, setAddMatForms] = useState({})
   const [addOpForms, setAddOpForms] = useState({})
   const [addSvcForms, setAddSvcForms] = useState({})
+
+  function clearSelectedOrcamento() {
+    setSelectedOrcId('')
+    setLinhasMateriais([])
+    setLinhasOperacoes([])
+    setLinhasServicos([])
+    setRealizadosByLinhaMat({})
+    setRealizadosByLinhaOp({})
+    setRealizadosByLinhaSvc({})
+    setResumo(null)
+    setAddMatForms({})
+    setAddOpForms({})
+    setAddSvcForms({})
+  }
 
   const loadBase = useCallback(async () => {
     if (!token) return
@@ -94,18 +115,36 @@ export default function RealizadoModule({ token }) {
   }
   function describeOperacao(idOperacao) {
     const op = operacaoById.get(idOperacao)
-    if (!op) return `Operacao #${idOperacao}`
+    if (!op) return `Operação #${idOperacao}`
     return op.codigo ? `${op.codigo} - ${op.nome}` : op.nome
   }
   function describeServico(idServico) {
     const svc = servicoById.get(idServico)
-    if (!svc) return `Servico #${idServico}`
+    if (!svc) return `Serviço #${idServico}`
     return svc.codigo ? `${svc.codigo} - ${svc.nome}` : svc.nome
   }
 
   const filteredOrcs = orcamentos.filter(
     (o) => !filterProjectId || String(o.id_projeto) === filterProjectId,
   )
+
+  async function handleProjectChange(projectId) {
+    setFilterProjectId(projectId)
+    clearSelectedOrcamento()
+    setError('')
+    setLoadingOrcamentos(true)
+    try {
+      const nextOrcamentos = projectId
+        ? await listProjectBudgets(token, projectId)
+        : await listOrcamentos(token)
+      setOrcamentos(nextOrcamentos)
+    } catch (e) {
+      setError(e.message)
+      setOrcamentos([])
+    } finally {
+      setLoadingOrcamentos(false)
+    }
+  }
 
   const loadOrcDetails = useCallback(async (orcId) => {
     if (!orcId || !token) return
@@ -203,7 +242,7 @@ export default function RealizadoModule({ token }) {
     }
   }
 
-  // Operacao realizado
+  // Operação realizada
   async function handleAddRealizadoOp(idLinha) {
     const f = addOpForms[idLinha] || { horas: '', custo_hora_real: '', observacoes: '' }
     if (!f.horas) return
@@ -224,19 +263,19 @@ export default function RealizadoModule({ token }) {
   }
 
   async function handleDeleteRealizadoOp(id) {
-    if (!window.confirm('Remover este registo de operacao realizada?')) return
+    if (!window.confirm('Remover este registo de operação realizada?')) return
     setError('')
     setSuccess('')
     try {
       await deleteRealizadoOperacao(token, id)
-      setSuccess('Registo de operacao removido.')
+      setSuccess('Registo de operação removido.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
       setError(e.message)
     }
   }
 
-  // Servico realizado
+  // Serviço realizado
   async function handleAddRealizadoSvc(idLinha) {
     const f = addSvcForms[idLinha] || { quantidade: '', preco_unitario_real: '', observacoes: '' }
     if (!f.quantidade) return
@@ -257,12 +296,12 @@ export default function RealizadoModule({ token }) {
   }
 
   async function handleDeleteRealizadoSvc(id) {
-    if (!window.confirm('Remover este registo de servico realizado?')) return
+    if (!window.confirm('Remover este registo de serviço realizado?')) return
     setError('')
     setSuccess('')
     try {
       await deleteRealizadoServico(token, id)
-      setSuccess('Registo de servico removido.')
+      setSuccess('Registo de serviço removido.')
       await loadOrcDetails(selectedOrcId)
     } catch (e) {
       setError(e.message)
@@ -281,17 +320,17 @@ export default function RealizadoModule({ token }) {
         {success && <p className="message success">{success}</p>}
 
         <div className="module-toolbar">
-          <select value={filterProjectId} onChange={(e) => { setFilterProjectId(e.target.value); setSelectedOrcId('') }}>
+          <select value={filterProjectId} onChange={(e) => handleProjectChange(e.target.value)}>
             <option value="">Todos os projetos</option>
             {projects.map((p) => (
               <option key={p.id_projeto} value={p.id_projeto}>#{p.id_projeto} - {p.designacao}</option>
             ))}
           </select>
-          <select value={selectedOrcId} onChange={(e) => handleSelectOrc(e.target.value)}>
-            <option value="">Selecionar orcamento</option>
+          <select value={selectedOrcId} onChange={(e) => handleSelectOrc(e.target.value)} disabled={loadingOrcamentos}>
+            <option value="">{loadingOrcamentos ? 'A carregar orçamentos...' : 'Selecionar orçamento'}</option>
             {filteredOrcs.map((o) => (
               <option key={o.id_orcamento} value={o.id_orcamento}>
-                #{o.id_orcamento} - v{o.versao} ({o.estado})
+                #{o.id_orcamento} - {formatVersionLabel(o.versao)} ({formatStatusLabel(o.estado)})
               </option>
             ))}
           </select>
@@ -300,9 +339,9 @@ export default function RealizadoModule({ token }) {
         {resumo && (
           <div className="compare-grid realizado-summary-grid">
             <div><p>Real Materiais</p><strong>{formatMoney(resumo.custo_total_real_materiais)}</strong></div>
-            <div><p>Real Operacoes</p><strong>{formatMoney(resumo.custo_total_real_operacoes)}</strong></div>
-            <div><p>Real Servicos</p><strong>{formatMoney(resumo.custo_total_real_servicos)}</strong></div>
-            <div><p>Total Real</p><strong>{formatMoney(resumo.custo_total_real)}</strong></div>
+            <div><p>Real Operações</p><strong>{formatMoney(resumo.custo_total_real_operacoes)}</strong></div>
+            <div><p>Real Serviços</p><strong>{formatMoney(resumo.custo_total_real_servicos)}</strong></div>
+            <div><p>Total real</p><strong>{formatMoney(resumo.custo_total_real)}</strong></div>
           </div>
         )}
 
@@ -316,7 +355,7 @@ export default function RealizadoModule({ token }) {
                   className={`tab-btn ${activeTab === t ? 'active' : ''}`}
                   onClick={() => setActiveTab(t)}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {TAB_LABELS[t] || t}
                 </button>
               ))}
             </div>
@@ -332,7 +371,7 @@ export default function RealizadoModule({ token }) {
                     <div key={linha.id_linha_material} className="realizado-linha">
                       <div className="realizado-linha-head">
                         <strong>{describeMaterial(linha.id_material)}</strong>
-                        <span>Linha #{linha.id_linha_material} | Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
+                        <span>Linha #{linha.id_linha_material} | Orçado: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input
@@ -361,7 +400,7 @@ export default function RealizadoModule({ token }) {
                         <div className="table-scroll">
                           <table>
                             <thead>
-                              <tr><th>Data</th><th>Qtd</th><th>Peso (kg)</th><th>Custo Unit.</th><th>Total Real</th><th>Obs.</th><th></th></tr>
+                              <tr><th>Data</th><th>Qtd</th><th>Peso (kg)</th><th>Custo unit.</th><th>Total real</th><th>Obs.</th><th></th></tr>
                             </thead>
                             <tbody>
                               {realizados.map((r) => (
@@ -383,7 +422,7 @@ export default function RealizadoModule({ token }) {
                   )
                 })}
                 {linhasMateriais.length === 0 && !loading && (
-                  <p className="realizado-empty">Sem linhas de material neste orcamento.</p>
+                  <p className="realizado-empty">Sem linhas de material neste orçamento.</p>
                 )}
               </div>
             )}
@@ -397,7 +436,7 @@ export default function RealizadoModule({ token }) {
                     <div key={linha.id_linha_operacao} className="realizado-linha">
                       <div className="realizado-linha-head">
                         <strong>{describeOperacao(linha.id_operacao)}</strong>
-                        <span>Linha #{linha.id_linha_operacao} | Orc: {linha.horas}h | {formatMoney(linha.custo_total)}</span>
+                        <span>Linha #{linha.id_linha_operacao} | Orçado: {linha.horas}h | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input
@@ -421,7 +460,7 @@ export default function RealizadoModule({ token }) {
                         <div className="table-scroll">
                           <table>
                             <thead>
-                              <tr><th>Data</th><th>Horas</th><th>Custo/h</th><th>Total Real</th><th>Obs.</th><th></th></tr>
+                              <tr><th>Data</th><th>Horas</th><th>Custo/h</th><th>Total real</th><th>Obs.</th><th></th></tr>
                             </thead>
                             <tbody>
                               {realizados.map((r) => (
@@ -442,7 +481,7 @@ export default function RealizadoModule({ token }) {
                   )
                 })}
                 {linhasOperacoes.length === 0 && !loading && (
-                  <p className="realizado-empty">Sem linhas de operacao neste orcamento.</p>
+                  <p className="realizado-empty">Sem linhas de operação neste orçamento.</p>
                 )}
               </div>
             )}
@@ -456,7 +495,7 @@ export default function RealizadoModule({ token }) {
                     <div key={linha.id_linha_servico} className="realizado-linha">
                       <div className="realizado-linha-head">
                         <strong>{describeServico(linha.id_servico)}</strong>
-                        <span>Linha #{linha.id_linha_servico} | Orc: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
+                        <span>Linha #{linha.id_linha_servico} | Orçado: {linha.quantidade} un | {formatMoney(linha.custo_total)}</span>
                       </div>
                       <div className="add-line-form">
                         <input
@@ -465,7 +504,7 @@ export default function RealizadoModule({ token }) {
                           onChange={(e) => setAddSvcForms((p) => ({ ...p, [linha.id_linha_servico]: { ...f, quantidade: e.target.value } }))}
                         />
                         <input
-                          type="number" step="0.0001" placeholder="Preco unit. real (opcional)"
+                          type="number" step="0.0001" placeholder="Preço unit. real (opcional)"
                           value={f.preco_unitario_real}
                           onChange={(e) => setAddSvcForms((p) => ({ ...p, [linha.id_linha_servico]: { ...f, preco_unitario_real: e.target.value } }))}
                         />
@@ -480,7 +519,7 @@ export default function RealizadoModule({ token }) {
                         <div className="table-scroll">
                           <table>
                             <thead>
-                              <tr><th>Data</th><th>Qtd</th><th>Preco Unit.</th><th>Total Real</th><th>Obs.</th><th></th></tr>
+                              <tr><th>Data</th><th>Qtd</th><th>Preço unit.</th><th>Total real</th><th>Obs.</th><th></th></tr>
                             </thead>
                             <tbody>
                               {realizados.map((r) => (
@@ -501,7 +540,7 @@ export default function RealizadoModule({ token }) {
                   )
                 })}
                 {linhasServicos.length === 0 && !loading && (
-                  <p className="realizado-empty">Sem linhas de servico neste orcamento.</p>
+                  <p className="realizado-empty">Sem linhas de serviço neste orçamento.</p>
                 )}
               </div>
             )}
@@ -509,7 +548,7 @@ export default function RealizadoModule({ token }) {
         )}
 
         {!selectedOrcId && (
-          <p className="realizado-select-hint">Selecione um orcamento para registar custos reais.</p>
+          <p className="realizado-select-hint">Selecione um orçamento para registar custos reais.</p>
         )}
       </div>
     </div>

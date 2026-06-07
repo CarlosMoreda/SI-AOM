@@ -111,6 +111,14 @@ def gerar_pdf_orcamento(db: Session, id_orcamento: int) -> bytes:
         else None
     )
 
+    # versao pode ja vir como "v1" ou apenas "1". Normaliza para "v1" sem
+    # duplicar o prefixo (evita "vv1" no cabecalho e no rodape).
+    versao_label = (
+        orcamento.versao
+        if orcamento.versao.startswith("v")
+        else f"v{orcamento.versao}"
+    )
+
     contexto = {
         "orcamento": orcamento,
         "projeto": projeto,
@@ -119,6 +127,7 @@ def gerar_pdf_orcamento(db: Session, id_orcamento: int) -> bytes:
         "operacoes": _linhas_operacoes(db, id_orcamento),
         "servicos": _linhas_servicos(db, id_orcamento),
         "data_emissao": date.today().strftime("%d/%m/%Y"),
+        "versao_label": versao_label,
     }
 
     template = _env.get_template("orcamento.html")

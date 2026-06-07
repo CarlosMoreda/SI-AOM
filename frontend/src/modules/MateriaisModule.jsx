@@ -145,7 +145,7 @@ export default function MateriaisModule({ token }) {
 
         <div className="module-toolbar">
           <input
-            placeholder="Pesquisar codigo ou nome..."
+            placeholder="Pesquisar código ou nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -156,7 +156,7 @@ export default function MateriaisModule({ token }) {
           <form className="inline-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <label>
-                Codigo *
+                Código *
                 <input value={form.codigo} onChange={(e) => setField('codigo', e.target.value)} required />
               </label>
               <label>
@@ -183,7 +183,7 @@ export default function MateriaisModule({ token }) {
                 Ativo
                 <select value={String(form.ativo)} onChange={(e) => setField('ativo', e.target.value === 'true')}>
                   <option value="true">Sim</option>
-                  <option value="false">Nao</option>
+                  <option value="false">Não</option>
                 </select>
               </label>
             </div>
@@ -199,14 +199,14 @@ export default function MateriaisModule({ token }) {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Codigo</th>
+                <th>Código</th>
                 <th>Nome</th>
                 <th>Unidade</th>
                 <th>Tipo</th>
                 <th>Qualidade</th>
                 <th>Custo Unit.</th>
                 <th>Ativo</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -219,7 +219,7 @@ export default function MateriaisModule({ token }) {
                   <td>{i.tipo || '-'}</td>
                   <td>{i.qualidade_material || '-'}</td>
                   <td>{formatMoney(i.custo_unitario_default)}</td>
-                  <td>{i.ativo ? 'Sim' : 'Nao'}</td>
+                  <td>{i.ativo ? 'Sim' : 'Não'}</td>
                   <td>
                     <div className="row-actions">
                       <button type="button" className="btn-xs" onClick={() => openEdit(i)}>Editar</button>

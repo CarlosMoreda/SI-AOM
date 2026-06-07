@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { formatDate, formatMoney } from '../utils/formatters'
+import { formatDate, formatMoney, formatStatusLabel, formatVersionLabel } from '../utils/formatters'
 import { listProjects } from '../services/projectService'
 import {
   createOrcamento,
@@ -24,7 +24,7 @@ import { listServicos } from '../services/servicoService'
 import OrcamentoDetailsPanel from './orcamentos/OrcamentoDetailsPanel'
 import OrcamentoDraftLines from './orcamentos/OrcamentoDraftLines'
 
-// Estados conforme o ciclo de vida do orcamento (relatorio 3.5).
+// Estados conforme o ciclo de vida do orçamento (relatório 3.5).
 const ESTADOS_ORC = [
   'em_preparacao',
   'em_revisao',
@@ -123,7 +123,7 @@ export default function OrcamentosModule({ token }) {
       setCatalogOperacoes(ops)
       setCatalogServicos(svcs)
     } catch (e) {
-      setError(e.message || 'Nao foi possivel carregar catalogos')
+      setError(e.message || 'Não foi possível carregar catálogos')
     }
   }, [token])
 
@@ -283,7 +283,7 @@ export default function OrcamentosModule({ token }) {
     const areaM2 = draftMatForm.area_m2 !== '' ? Number(draftMatForm.area_m2) : null
 
     if (!idMaterial || !Number.isFinite(quantidade) || quantidade <= 0) {
-      setError('Preencha material e quantidade validos.')
+      setError('Preencha material e quantidade válidos.')
       return
     }
 
@@ -310,7 +310,7 @@ export default function OrcamentosModule({ token }) {
     const tempoSetup = Number(draftOpForm.tempo_setup_h || 0)
 
     if (!idOperacao || !Number.isFinite(horas) || horas <= 0) {
-      setError('Preencha operacao e horas validas.')
+      setError('Preencha operação e horas válidas.')
       return
     }
 
@@ -334,7 +334,7 @@ export default function OrcamentosModule({ token }) {
     const quantidade = Number(draftSvcForm.quantidade)
 
     if (!idServico || !Number.isFinite(quantidade) || quantidade <= 0) {
-      setError('Preencha servico e quantidade validos.')
+      setError('Preencha serviço e quantidade válidos.')
       return
     }
 
@@ -421,13 +421,13 @@ export default function OrcamentosModule({ token }) {
       (orcForm.id_projeto ? getNextVersionForProject(Number(orcForm.id_projeto)) : '')
 
     if (!orcForm.id_projeto) {
-      setError('Projeto obrigatorio.')
+      setError('Projeto obrigatório.')
       setSaving(false)
       return
     }
 
     if (!resolvedVersao) {
-      setError('Versao obrigatoria para criar o orcamento.')
+      setError('Versão obrigatória para criar o orçamento.')
       setSaving(false)
       return
     }
@@ -450,7 +450,7 @@ export default function OrcamentosModule({ token }) {
     try {
       if (editingOrcId) {
         await updateOrcamento(token, editingOrcId, payload)
-        setSuccess('Orcamento atualizado.')
+        setSuccess('Orçamento atualizado.')
       } else {
         created = await createOrcamento(token, payload)
 
@@ -460,10 +460,10 @@ export default function OrcamentosModule({ token }) {
 
         setSuccess(
           shouldCreateWithLines
-            ? `Orcamento completo criado com ${countDraftLines} linhas.`
+            ? `Orçamento completo criado com ${countDraftLines} linhas.`
             : shouldAutoOpen
-              ? 'Orcamento criado do zero. Adicione agora as linhas de detalhe.'
-              : 'Orcamento criado.',
+              ? 'Orçamento criado do zero. Adicione agora as linhas de detalhe.'
+              : 'Orçamento criado.',
         )
       }
       cancelForm()
@@ -478,9 +478,9 @@ export default function OrcamentosModule({ token }) {
         setFilterProjectId(String(created.id_projeto))
         selectOrcamento(created)
         setShowOrcForm(false)
-        setError(`Orcamento #${created.id_orcamento} criado, mas falhou ao inserir todas as linhas: ${e.message}`)
+        setError(`Orçamento #${created.id_orcamento} criado, mas falhou ao inserir todas as linhas: ${e.message}`)
       } else if (isCreate) {
-        setError(`Falha ao criar orcamento completo: ${e.message}`)
+        setError(`Falha ao criar orçamento completo: ${e.message}`)
       } else {
         setError(e.message)
       }
@@ -491,13 +491,13 @@ export default function OrcamentosModule({ token }) {
 
   async function handleDeleteOrc(orc, e) {
     e.stopPropagation()
-    if (!window.confirm(`Eliminar orcamento #${orc.id_orcamento} v${orc.versao}?`)) return
+    if (!window.confirm(`Eliminar orçamento #${orc.id_orcamento} ${formatVersionLabel(orc.versao)}?`)) return
     setError('')
     setSuccess('')
     try {
       await deleteOrcamento(token, orc.id_orcamento)
       if (selectedOrc?.id_orcamento === orc.id_orcamento) setSelectedOrc(null)
-      setSuccess('Orcamento eliminado.')
+      setSuccess('Orçamento eliminado.')
       await load()
     } catch (e) {
       setError(e.message)
@@ -529,7 +529,7 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteMaterial(idLinha) {
-    if (!window.confirm('Remover esta linha de material do orcamento?')) return
+    if (!window.confirm('Remover esta linha de material do orçamento?')) return
     setError('')
     setSuccess('')
     try {
@@ -555,7 +555,7 @@ export default function OrcamentosModule({ token }) {
         observacoes: addOpForm.observacoes || null,
       })
       setAddOpForm({ id_operacao: '', horas: '', tempo_setup_h: '0', observacoes: '' })
-      setSuccess('Linha de operacao adicionada.')
+      setSuccess('Linha de operação adicionada.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -564,12 +564,12 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteOperacao(idLinha) {
-    if (!window.confirm('Remover esta linha de operacao do orcamento?')) return
+    if (!window.confirm('Remover esta linha de operação do orçamento?')) return
     setError('')
     setSuccess('')
     try {
       await deleteOrcamentoOperacao(token, idLinha)
-      setSuccess('Linha de operacao removida.')
+      setSuccess('Linha de operação removida.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -589,7 +589,7 @@ export default function OrcamentosModule({ token }) {
         observacoes: addSvcForm.observacoes || null,
       })
       setAddSvcForm({ id_servico: '', quantidade: '', observacoes: '' })
-      setSuccess('Linha de servico adicionada.')
+      setSuccess('Linha de serviço adicionada.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -598,12 +598,12 @@ export default function OrcamentosModule({ token }) {
   }
 
   async function handleDeleteServico(idLinha) {
-    if (!window.confirm('Remover esta linha de servico do orcamento?')) return
+    if (!window.confirm('Remover esta linha de serviço do orçamento?')) return
     setError('')
     setSuccess('')
     try {
       await deleteOrcamentoServico(token, idLinha)
-      setSuccess('Linha de servico removida.')
+      setSuccess('Linha de serviço removida.')
       await loadLinhas(selectedOrc)
       await load()
     } catch (e) {
@@ -634,7 +634,7 @@ export default function OrcamentosModule({ token }) {
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
-          <h3>Orcamentos</h3>
+          <h3>Orçamentos</h3>
           <span>{loading ? 'A carregar...' : `${orcamentos.length} registos`}</span>
         </div>
 
@@ -652,7 +652,7 @@ export default function OrcamentosModule({ token }) {
           </select>
           <div className="module-inline-actions">
             <button type="button" onClick={openCreate}>
-              + Novo orcamento
+              + Novo orçamento
             </button>
           </div>
         </div>
@@ -661,13 +661,13 @@ export default function OrcamentosModule({ token }) {
           <form className="inline-form" onSubmit={handleSubmitOrc}>
             {!editingOrcId && autoOpenAfterCreate && !createWithLines && (
               <p className="message form-message">
-                Fluxo do zero ativo: apos criar, o orcamento abre automaticamente para adicionar linhas.
+                Fluxo do zero ativo: após criar, o orçamento abre automaticamente para adicionar linhas.
               </p>
             )}
 
             {!editingOrcId && createWithLines && (
               <p className="message form-message">
-                Fluxo completo ativo: o sistema cria o orcamento e todas as linhas em um unico passo.
+                Fluxo completo ativo: o sistema cria o orçamento e todas as linhas num único passo.
               </p>
             )}
 
@@ -682,13 +682,13 @@ export default function OrcamentosModule({ token }) {
                 </select>
               </label>
               <label>
-                {editingOrcId ? 'Versao *' : 'Versao (opcional)'}
+                {editingOrcId ? 'Versão *' : 'Versão (opcional)'}
                 <input
                   value={orcForm.versao}
                   onChange={(e) => setOrcForm((f) => ({ ...f, versao: e.target.value }))}
                   placeholder={
                     !editingOrcId && orcForm.id_projeto
-                      ? `Sugestao: ${getNextVersionForProject(Number(orcForm.id_projeto))}`
+                      ? `Sugestão: ${getNextVersionForProject(Number(orcForm.id_projeto))}`
                       : ''
                   }
                   required={Boolean(editingOrcId)}
@@ -697,7 +697,7 @@ export default function OrcamentosModule({ token }) {
               <label>
                 Estado
                 <select value={orcForm.estado} onChange={(e) => setOrcForm((f) => ({ ...f, estado: e.target.value }))}>
-                  {ESTADOS_ORC.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {ESTADOS_ORC.map((s) => <option key={s} value={s}>{formatStatusLabel(s)}</option>)}
                 </select>
               </label>
               <label>
@@ -715,7 +715,7 @@ export default function OrcamentosModule({ token }) {
                     onChange={(e) => setAutoOpenAfterCreate(e.target.checked)}
                     disabled={createWithLines}
                   />
-                  Abrir detalhes apos criar para lancar linhas de detalhe
+                  Abrir detalhes após criar para lançar linhas de detalhe
                 </label>
 
                 <label>
@@ -724,7 +724,7 @@ export default function OrcamentosModule({ token }) {
                     checked={createWithLines}
                     onChange={(e) => toggleCreateWithLines(e.target.checked)}
                   />
-                  Criar tudo agora (materiais, operacoes e servicos)
+                  Criar tudo agora (materiais, operações e serviços)
                 </label>
               </div>
             )}
@@ -754,7 +754,7 @@ export default function OrcamentosModule({ token }) {
             )}
 
             <label>
-              Observacoes
+              Observações
               <input value={orcForm.observacoes} onChange={(e) => setOrcForm((f) => ({ ...f, observacoes: e.target.value }))} />
             </label>
             <div className="form-actions">
@@ -770,13 +770,13 @@ export default function OrcamentosModule({ token }) {
               <tr>
                 <th>ID</th>
                 <th>Projeto</th>
-                <th>Versao</th>
+                <th>Versão</th>
                 <th>Estado</th>
                 <th>Margem%</th>
                 <th>Custo Total</th>
-                <th>Preco Venda</th>
+                <th>Preço Venda</th>
                 <th>Criado</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -789,7 +789,7 @@ export default function OrcamentosModule({ token }) {
                   <td>{o.id_orcamento}</td>
                   <td>#{o.id_projeto}</td>
                   <td>{o.versao}</td>
-                  <td><span className={`badge badge-${o.estado}`}>{o.estado}</span></td>
+                  <td><span className={`badge badge-${o.estado}`}>{formatStatusLabel(o.estado)}</span></td>
                   <td>{o.margem_percentual != null ? `${o.margem_percentual}%` : '-'}</td>
                   <td>{formatMoney(o.custo_total_orcado)}</td>
                   <td>{formatMoney(o.preco_venda)}</td>
@@ -803,7 +803,7 @@ export default function OrcamentosModule({ token }) {
                 </tr>
               ))}
               {filteredOrcs.length === 0 && (
-                <tr><td colSpan={9}>Sem orcamentos.</td></tr>
+                <tr><td colSpan={9}>Sem orçamentos.</td></tr>
               )}
             </tbody>
           </table>

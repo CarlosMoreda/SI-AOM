@@ -11,12 +11,12 @@ export default function AuthPage({
     <main className="auth-shell">
       <section className="auth-card">
         <p className="eyebrow">SI-AOM</p>
-        <h1>Painel de Orcamentacao e Producao</h1>
-        <p className="subtitle">Entra com a tua conta para gerir projetos e orcamentos.</p>
+        <h1>Login</h1>
+        <p className="subtitle">Entra com a tua conta para gerir projetos e orçamentos.</p>
 
         <form className="auth-form" onSubmit={onSubmit}>
           <label>
-            Email
+            E-mail
             <input
               type="email"
               value={email}
@@ -26,7 +26,7 @@ export default function AuthPage({
             />
           </label>
           <label>
-            Password
+            Palavra-passe
             <input
               type="password"
               value={password}

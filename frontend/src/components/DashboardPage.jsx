@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 import SiaomMenu from './SiaomMenu'
 import { getVisibleMenuItems } from './menuConfig'
-import { formatDate, formatMoney } from '../utils/formatters'
+import { formatDate, formatMoney, formatStatusLabel, formatVersionLabel } from '../utils/formatters'
 import ClientesModule from '../modules/ClientesModule'
 import ProjetosModule from '../modules/ProjetosModule'
 import OrcamentosModule from '../modules/OrcamentosModule'
@@ -24,11 +24,11 @@ function percent(value, total) {
   return Math.max(0, Math.min(100, (value / total) * 100))
 }
 
-const LINES_PER_PAGE = 12
+const LINES_PER_PAGE = 6
 
 function BudgetTrendChart({ rows }) {
   if (rows.length === 0) {
-    return <p className="analytics-empty">Sem orcamentos para desenhar o grafico.</p>
+    return <p className="analytics-empty">Sem orçamentos para desenhar o gráfico.</p>
   }
 
   const maxValue = rows.reduce((acc, row) => {
@@ -45,11 +45,11 @@ function BudgetTrendChart({ rows }) {
         return (
           <article className="trend-item" key={row.id_orcamento}>
             <div className="trend-head">
-              <p>Orcamento #{row.id_orcamento} - v{row.versao}</p>
+              <p>Orçamento #{row.id_orcamento} - {formatVersionLabel(row.versao)}</p>
             </div>
 
             <div className="trend-bar-row">
-              <span>Orcado</span>
+              <span>Orçado</span>
               <div className="trend-track">
                 <div
                   className="trend-fill trend-fill-orcado"
@@ -88,7 +88,7 @@ function StatusChart({ statusRows }) {
       {statusRows.map((row) => (
         <div key={row.estado} className="status-chart-row">
           <div className="status-chart-head">
-            <span>{row.estado}</span>
+            <span>{formatStatusLabel(row.estado)}</span>
             <strong>{row.count}</strong>
           </div>
           <div className="status-chart-track">
@@ -156,7 +156,7 @@ export default function DashboardPage({
     [projectBudgets, budgetRealTotals],
   )
 
-  // Tendencia agora vem ja pronta do backend (orcamentos_recentes com totais real).
+  // Tendência agora vem já pronta do backend (orcamentos_recentes com totais real).
   const trendRows = useMemo(
     () => (Array.isArray(recentBudgets) ? recentBudgets : []),
     [recentBudgets],
@@ -189,7 +189,7 @@ export default function DashboardPage({
     projectAnalysis.linhas.forEach((line) => {
       if (line.tipo !== 'operacao') return
 
-      const processo = line.processoLabel || 'Outras operacoes'
+      const processo = line.processoLabel || 'Outras operações'
       const horas = toNumber(line.horasValor ?? line.quantidadeValor)
 
       if (!processMap[processo]) {
@@ -298,8 +298,8 @@ export default function DashboardPage({
         return (
           <div className="panel">
             <div className="panel-head">
-              <h3>Definicoes</h3>
-              <span>Configuracoes do sistema</span>
+              <h3>Definições</h3>
+              <span>Configurações do sistema</span>
             </div>
             <p className="settings-card">
               Utilizador: <strong>{user?.nome}</strong> ({user?.email})<br />
@@ -318,12 +318,12 @@ export default function DashboardPage({
       <header className="topbar">
         <div>
           <p className="eyebrow">SI-AOM</p>
-          <h2>Dashboard Analitico</h2>
+          <h2>Dashboard Analítico</h2>
         </div>
         <div className="user-box">
           <p className="user-name">{user?.nome || user?.email}</p>
           <p className="role">{user?.perfil}</p>
-          <button type="button" className="logout-button" onClick={onLogout}>Terminar sessao</button>
+          <button type="button" className="logout-button" onClick={onLogout}>Terminar sessão</button>
         </div>
       </header>
 
@@ -343,11 +343,11 @@ export default function DashboardPage({
                   <p className="kpi-value">{globalTotalProjetos}</p>
                 </article>
                 <article className="kpi-card">
-                  <p className="kpi-label">Orcamentos</p>
+                  <p className="kpi-label">Orçamentos</p>
                   <p className="kpi-value">{globalTotalOrcamentos}</p>
                 </article>
                 <article className="kpi-card">
-                  <p className="kpi-label">Total orcado</p>
+                  <p className="kpi-label">Total orçado</p>
                   <p className="kpi-value">{formatMoney(globalTotalOrcado)}</p>
                 </article>
                 <article className="kpi-card">
@@ -355,11 +355,11 @@ export default function DashboardPage({
                   <p className="kpi-value">{formatMoney(globalTotalReal)}</p>
                 </article>
                 <article className="kpi-card">
-                  <p className="kpi-label">Ticket medio</p>
+                  <p className="kpi-label">Ticket médio</p>
                   <p className="kpi-value">{formatMoney(globalTicketMedio)}</p>
                 </article>
                 <article className="kpi-card">
-                  <p className="kpi-label">Desvio medio real</p>
+                  <p className="kpi-label">Desvio médio real</p>
                   <p className="kpi-value">{globalDesvioMedio.toFixed(2)}%</p>
                 </article>
               </section>
@@ -367,19 +367,19 @@ export default function DashboardPage({
               <section className="analytics-main-grid">
                 <article className="panel analytics-panel-large">
                   <div className="panel-head">
-                    <h3>Orcado vs Real por Orcamento</h3>
-                    <span>Ultimos 5 orcamentos</span>
+                    <h3>Orçado vs Real por Orçamento</h3>
+                    <span>Últimos 5 orçamentos</span>
                   </div>
 
-                  {budgetRealLoading && <p className="analytics-empty">A carregar custos reais dos orcamentos...</p>}
+                  {budgetRealLoading && <p className="analytics-empty">A carregar custos reais dos orçamentos...</p>}
 
                   <BudgetTrendChart rows={trendRows} />
                 </article>
 
                 <article className="panel">
                   <div className="panel-head">
-                    <h3>Grafico: Projetos por Estado</h3>
-                    <span>{projects.length} projetos</span>
+                    <h3>Gráfico: Projetos por Estado</h3>
+                    <span>{globalTotalProjetos} projetos</span>
                   </div>
 
                   <StatusChart statusRows={statusRows} />
@@ -389,7 +389,7 @@ export default function DashboardPage({
               <section className="analytics-project-grid">
                 <article className="panel analytics-panel-large">
                   <div className="panel-head">
-                    <h3>Analise de Projeto</h3>
+                    <h3>Análise de Projeto</h3>
                     <span>{loadingData ? 'A atualizar dados base...' : 'Selecionar projeto para detalhes'}</span>
                   </div>
 
@@ -421,7 +421,7 @@ export default function DashboardPage({
                   )}
 
                   {selectedProjectId && projectAnalysisLoading && (
-                    <p className="analytics-empty">A analisar orcamentos e linhas do projeto...</p>
+                    <p className="analytics-empty">A analisar orçamentos e linhas do projeto...</p>
                   )}
 
                   {selectedProjectId && !projectAnalysisLoading && selectedProject && (
@@ -430,18 +430,18 @@ export default function DashboardPage({
                         <div>
                           <h4>#{selectedProject.id_projeto} - {selectedProject.designacao}</h4>
                           <p>
-                            {selectedProject.referencia} | {selectedProject.estado} | criado em {formatDate(selectedProject.criado_em)}
+                            {selectedProject.referencia} | {formatStatusLabel(selectedProject.estado)} | criado em {formatDate(selectedProject.criado_em)}
                           </p>
                         </div>
                         <div className="project-summary-meta">
-                          <span>{projectBudgets.length} orcamentos</span>
+                          <span>{projectBudgets.length} orçamentos</span>
                           <span>{projectAnalysis.totalLinhas} linhas</span>
                         </div>
                       </div>
 
                       <div className="project-kpi-grid">
                         <article className="kpi-card">
-                          <p className="kpi-label">Orcado do projeto</p>
+                          <p className="kpi-label">Orçado do projeto</p>
                           <p className="kpi-value">{formatMoney(projectAnalysis.totalOrcado)}</p>
                         </article>
                         <article className="kpi-card">
@@ -457,18 +457,18 @@ export default function DashboardPage({
                           <p className="kpi-value">{formatMoney(projectAnalysis.totalMateriais)}</p>
                         </article>
                         <article className="kpi-card">
-                          <p className="kpi-label">Operacoes</p>
+                          <p className="kpi-label">Operações</p>
                           <p className="kpi-value">{formatMoney(projectAnalysis.totalOperacoes)}</p>
                         </article>
                         <article className="kpi-card">
-                          <p className="kpi-label">Servicos</p>
+                          <p className="kpi-label">Serviços</p>
                           <p className="kpi-value">{formatMoney(projectAnalysis.totalServicos)}</p>
                         </article>
                       </div>
 
                       <div className="cost-breakdown-panel">
                         <div className="panel-head">
-                          <h3>Composicao de custos do projeto</h3>
+                          <h3>Composição de custos do projeto</h3>
                           <span>{formatMoney(projectCostTotal)}</span>
                         </div>
 
@@ -481,19 +481,19 @@ export default function DashboardPage({
                           <span
                             className="cost-breakdown-fill operacoes"
                             style={{ width: `${percent(projectAnalysis.totalOperacoes, projectCostTotal)}%` }}
-                            title={`Operacoes: ${formatMoney(projectAnalysis.totalOperacoes)}`}
+                            title={`Operações: ${formatMoney(projectAnalysis.totalOperacoes)}`}
                           />
                           <span
                             className="cost-breakdown-fill servicos"
                             style={{ width: `${percent(projectAnalysis.totalServicos, projectCostTotal)}%` }}
-                            title={`Servicos: ${formatMoney(projectAnalysis.totalServicos)}`}
+                            title={`Serviços: ${formatMoney(projectAnalysis.totalServicos)}`}
                           />
                         </div>
 
                         <div className="cost-breakdown-legend">
                           <span>Materiais: {formatMoney(projectAnalysis.totalMateriais)}</span>
-                          <span>Operacoes: {formatMoney(projectAnalysis.totalOperacoes)}</span>
-                          <span>Servicos: {formatMoney(projectAnalysis.totalServicos)}</span>
+                          <span>Operações: {formatMoney(projectAnalysis.totalOperacoes)}</span>
+                          <span>Serviços: {formatMoney(projectAnalysis.totalServicos)}</span>
                         </div>
                       </div>
 
@@ -504,7 +504,7 @@ export default function DashboardPage({
                         </div>
 
                         {automaticProcessRows.length === 0 && (
-                          <p className="analytics-empty">Sem operacoes para calcular processos automaticamente.</p>
+                          <p className="analytics-empty">Sem operações para calcular processos automaticamente.</p>
                         )}
 
                         {automaticProcessRows.length > 0 && (
@@ -530,7 +530,7 @@ export default function DashboardPage({
 
                 <article className="panel">
                   <div className="panel-head">
-                    <h3>Linhas dos Orcamentos do Projeto</h3>
+                    <h3>Linhas dos Orçamentos do Projeto</h3>
                     <span>{sortedLines.length} linhas</span>
                   </div>
 
@@ -547,8 +547,8 @@ export default function DashboardPage({
                       >
                         <option value="all">Todas</option>
                         <option value="material">Materiais</option>
-                        <option value="operacao">Operacoes</option>
-                        <option value="servico">Servicos</option>
+                        <option value="operacao">Operações</option>
+                        <option value="servico">Serviços</option>
                       </select>
                     </label>
 
@@ -560,7 +560,7 @@ export default function DashboardPage({
                           setLineSearchTerm(event.target.value)
                           setLinePage(1)
                         }}
-                        placeholder="Item, processo, tipo ou orcamento"
+                        placeholder="Item, processo, tipo ou orçamento"
                         disabled={!selectedProjectId}
                       />
                     </label>
@@ -577,8 +577,8 @@ export default function DashboardPage({
                       >
                         <option value="custo:desc">Custo (maior para menor)</option>
                         <option value="custo:asc">Custo (menor para maior)</option>
-                        <option value="orcamento:desc">Orcamento (mais recente)</option>
-                        <option value="orcamento:asc">Orcamento (mais antigo)</option>
+                        <option value="orcamento:desc">Orçamento (mais recente)</option>
+                        <option value="orcamento:asc">Orçamento (mais antigo)</option>
                         <option value="tipo:asc">Tipo (A-Z)</option>
                         <option value="processo:asc">Processo (A-Z)</option>
                         <option value="item:asc">Item (A-Z)</option>
@@ -587,7 +587,7 @@ export default function DashboardPage({
                   </div>
 
                   {!selectedProjectId && (
-                    <p className="analytics-empty">Seleciona um projeto para ver as linhas dos orcamentos.</p>
+                    <p className="analytics-empty">Seleciona um projeto para ver as linhas dos orçamentos.</p>
                   )}
 
                   {selectedProjectId && projectAnalysisLoading && (
@@ -600,7 +600,7 @@ export default function DashboardPage({
                         <table>
                           <thead>
                             <tr>
-                              <th>Orcamento</th>
+                              <th>Orçamento</th>
                               <th>Tipo</th>
                               <th>Item</th>
                               <th>Processo</th>
@@ -634,7 +634,7 @@ export default function DashboardPage({
                       {sortedLines.length > 0 && (
                         <div className="analytics-lines-pagination">
                           <span>
-                            Pagina {currentLinePage} de {totalLinePages} - {sortedLines.length} linhas
+                            Página {currentLinePage} de {totalLinePages} - {sortedLines.length} linhas
                           </span>
                           <div className="analytics-lines-pagination-actions">
                             <button
@@ -662,17 +662,17 @@ export default function DashboardPage({
               {selectedProjectId && !projectAnalysisLoading && projectBudgets.length > 0 && (
                 <article className="panel analytics-budget-list-panel">
                   <div className="panel-head">
-                    <h3>Orcamentos do Projeto Selecionado</h3>
+                    <h3>Orçamentos do Projeto Selecionado</h3>
                     <span>{projectBudgets.length} registos</span>
                   </div>
 
                   <ul className="budget-list">
                     {projectBudgetsWithReal.map((budget) => (
                       <li key={budget.id_orcamento}>
-                        <strong>Orcamento #{budget.id_orcamento}</strong>
-                        <span>Versao {budget.versao}</span>
-                        <span>Estado: {budget.estado}</span>
-                        <span>Total orcado: {formatMoney(budget.custo_total_orcado)}</span>
+                        <strong>Orçamento #{budget.id_orcamento}</strong>
+                        <span>Versão {formatVersionLabel(budget.versao)}</span>
+                        <span>Estado: {formatStatusLabel(budget.estado)}</span>
+                        <span>Total orçado: {formatMoney(budget.custo_total_orcado)}</span>
                         <span>Total real: {formatMoney(budget.custo_total_real)}</span>
                       </li>
                     ))}
@@ -683,9 +683,9 @@ export default function DashboardPage({
               {selectedProjectId && !projectAnalysisLoading && projectBudgets.length === 0 && (
                 <article className="panel analytics-budget-list-panel">
                   <div className="panel-head">
-                    <h3>Orcamentos do Projeto Selecionado</h3>
+                    <h3>Orçamentos do Projeto Selecionado</h3>
                   </div>
-                  <p className="analytics-empty">Este projeto ainda nao tem orcamentos.</p>
+                  <p className="analytics-empty">Este projeto ainda não tem orçamentos.</p>
                 </article>
               )}
 

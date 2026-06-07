@@ -95,10 +95,10 @@ export default function OperacoesModule({ token }) {
     try {
       if (editingId) {
         await updateOperacao(token, editingId, payload)
-        setSuccess('Operacao atualizada.')
+        setSuccess('Operação atualizada.')
       } else {
         await createOperacao(token, payload)
-        setSuccess('Operacao criada.')
+        setSuccess('Operação criada.')
       }
       cancelForm()
       await load()
@@ -110,12 +110,12 @@ export default function OperacoesModule({ token }) {
   }
 
   async function handleDelete(item) {
-    if (!window.confirm(`Eliminar operacao "${item.nome}"?`)) return
+    if (!window.confirm(`Eliminar operação "${item.nome}"?`)) return
     setError('')
     setSuccess('')
     try {
       await deleteOperacao(token, item.id_operacao)
-      setSuccess('Operacao eliminada.')
+      setSuccess('Operação eliminada.')
       await load()
     } catch (e) {
       setError(e.message)
@@ -133,7 +133,7 @@ export default function OperacoesModule({ token }) {
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
-          <h3>Operacoes</h3>
+          <h3>Operações</h3>
           <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
         </div>
 
@@ -142,18 +142,18 @@ export default function OperacoesModule({ token }) {
 
         <div className="module-toolbar">
           <input
-            placeholder="Pesquisar codigo ou nome..."
+            placeholder="Pesquisar código ou nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <button type="button" onClick={openCreate}>+ Nova operacao</button>
+          <button type="button" onClick={openCreate}>+ Nova operação</button>
         </div>
 
         {showForm && (
           <form className="inline-form" onSubmit={handleSubmit}>
             <div className="form-row">
               <label>
-                Codigo *
+                Código *
                 <input value={form.codigo} onChange={(e) => setField('codigo', e.target.value)} required />
               </label>
               <label>
@@ -176,7 +176,7 @@ export default function OperacoesModule({ token }) {
                 Ativo
                 <select value={String(form.ativo)} onChange={(e) => setField('ativo', e.target.value === 'true')}>
                   <option value="true">Sim</option>
-                  <option value="false">Nao</option>
+                  <option value="false">Não</option>
                 </select>
               </label>
             </div>
@@ -192,13 +192,13 @@ export default function OperacoesModule({ token }) {
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Codigo</th>
+                <th>Código</th>
                 <th>Nome</th>
                 <th>Categoria</th>
                 <th>Custo/hora</th>
                 <th>Setup h</th>
                 <th>Ativo</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -210,7 +210,7 @@ export default function OperacoesModule({ token }) {
                   <td>{i.categoria || '-'}</td>
                   <td>{formatMoney(i.custo_hora_default)}</td>
                   <td>{i.setup_hora_default}</td>
-                  <td>{i.ativo ? 'Sim' : 'Nao'}</td>
+                  <td>{i.ativo ? 'Sim' : 'Não'}</td>
                   <td>
                     <div className="row-actions">
                       <button type="button" className="btn-xs" onClick={() => openEdit(i)}>Editar</button>
@@ -219,7 +219,7 @@ export default function OperacoesModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8}>Sem operacoes.</td></tr>}
+              {filtered.length === 0 && <tr><td colSpan={8}>Sem operações.</td></tr>}
             </tbody>
           </table>
         </div>

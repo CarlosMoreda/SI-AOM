@@ -29,8 +29,8 @@ function hasRealizadoValue(value) {
 
 const CATEGORIA_LABEL = {
   materiais: 'Materiais',
-  operacoes: 'Operacoes',
-  servicos: 'Servicos',
+  operacoes: 'Operações',
+  servicos: 'Serviços',
   total: 'Total',
   horas: 'Horas',
 }
@@ -95,15 +95,15 @@ export default function ComparacaoModule({ token }) {
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
-          <h3>Comparacao Orcado vs Real</h3>
-          <span>Analise de desvios por orcamento</span>
+          <h3>Comparação Orçado vs Real</h3>
+          <span>Análise de desvios por orçamento</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
 
         <form className="comparison-form" onSubmit={handleSubmit}>
           <label>
-            ID do Orcamento
+            ID do Orçamento
             <input
               type="number"
               min="1"
@@ -114,7 +114,7 @@ export default function ComparacaoModule({ token }) {
             />
           </label>
           <button type="submit" disabled={loading}>
-            {loading ? 'A carregar...' : 'Ver comparacao'}
+            {loading ? 'A carregar...' : 'Ver comparação'}
           </button>
         </form>
 
@@ -125,12 +125,12 @@ export default function ComparacaoModule({ token }) {
 
           return (
             <div className="comparison-result">
-              <p className="comparison-subtitle">Orcamento #{data.id_orcamento}</p>
+              <p className="comparison-subtitle">Orçamento #{data.id_orcamento}</p>
 
               {semRealizadoTotal && (
                 <p className="message info comparison-empty-notice">
-                  Sem realizado registado. Este orcamento ainda nao tem custos reais
-                  imputados — a analise de desvios fica disponivel assim que a producao
+                  Sem realizado registado. Este orçamento ainda não tem custos reais
+                  imputados — a análise de desvios fica disponível assim que a produção
                   registar os primeiros valores.
                 </p>
               )}
@@ -145,7 +145,7 @@ export default function ComparacaoModule({ token }) {
                   <thead>
                     <tr>
                       <th>Categoria</th>
-                      <th>Orcado</th>
+                      <th>Orçado</th>
                       <th>Real</th>
                       <th>Desvio Abs.</th>
                       <th>Desvio %</th>
@@ -154,8 +154,8 @@ export default function ComparacaoModule({ token }) {
                   <tbody>
                     {[
                       { label: 'Materiais', bloco: data.materiais },
-                      { label: 'Operacoes', bloco: data.operacoes },
-                      { label: 'Servicos', bloco: data.servicos },
+                      { label: 'Operações', bloco: data.operacoes },
+                      { label: 'Serviços', bloco: data.servicos },
                       { label: 'Total', bloco: data.total },
                     ].map(({ label, bloco }) => {
                       const hasReal = hasRealizadoValue(bloco.real)

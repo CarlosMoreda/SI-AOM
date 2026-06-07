@@ -154,7 +154,7 @@ export default function ClientesModule({ token }) {
 
         <div className="module-toolbar">
           <input
-            placeholder="Pesquisar nome, NIF ou email..."
+            placeholder="Pesquisar nome, NIF ou e-mail..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -173,7 +173,7 @@ export default function ClientesModule({ token }) {
                 <input value={form.nif} onChange={(e) => setField('nif', e.target.value)} />
               </label>
               <label>
-                Email
+                E-mail
                 <input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
               </label>
               <label>
@@ -184,7 +184,7 @@ export default function ClientesModule({ token }) {
                 Ativo
                 <select value={String(form.ativo)} onChange={(e) => setField('ativo', e.target.value === 'true')}>
                   <option value="true">Sim</option>
-                  <option value="false">Nao</option>
+                  <option value="false">Não</option>
                 </select>
               </label>
             </div>
@@ -193,31 +193,31 @@ export default function ClientesModule({ token }) {
               <input value={form.morada} onChange={(e) => setField('morada', e.target.value)} />
             </label>
             <label>
-              Observacoes
+              Observações
               <input value={form.observacoes} onChange={(e) => setField('observacoes', e.target.value)} />
             </label>
             <div className="form-actions">
               <button type="submit" disabled={saving}>
-                {saving ? 'A gravar...' : editingId ? 'Guardar alteracoes' : 'Criar cliente'}
+                {saving ? 'A gravar...' : editingId ? 'Guardar alterações' : 'Criar cliente'}
               </button>
               <button type="button" className="btn-secondary" onClick={cancelForm}>Cancelar</button>
             </div>
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll clientes-table-wrap">
+          <table className="clientes-table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Nome</th>
                 <th>NIF</th>
-                <th>Email</th>
+                <th>E-mail</th>
                 <th>Telefone</th>
                 <th>Morada</th>
                 <th>Ativo</th>
                 <th>Criado</th>
-                <th>Acoes</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -229,7 +229,7 @@ export default function ClientesModule({ token }) {
                   <td>{i.email || '-'}</td>
                   <td>{i.telefone || '-'}</td>
                   <td>{i.morada || '-'}</td>
-                  <td>{i.ativo ? 'Sim' : 'Nao'}</td>
+                  <td>{i.ativo ? 'Sim' : 'Não'}</td>
                   <td>{formatDate(i.criado_em)}</td>
                   <td>
                     <div className="row-actions">
