@@ -28,6 +28,51 @@ export class ApiError extends Error {
   }
 }
 
+function buildQuery(params = {}) {
+  const usp = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') {
+      usp.append(key, value)
+    }
+  }
+  const qs = usp.toString()
+  return qs ? `?${qs}` : ''
+}
+
+/**
+ * GET paginado: devolve { items, total }. O total vem do cabeçalho
+ * X-Total-Count (exposto pelo backend), permitindo calcular o nº de páginas.
+ */
+export async function apiRequestPaged(path, { token, params = {} } = {}) {
+  let response
+  try {
+    response = await fetch(toApiUrl(`${path}${buildQuery(params)}`), {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+  } catch {
+    throw new ApiError(
+      'Não foi possível contactar o servidor. Verifica a tua ligação ou se o backend está a correr.',
+      { status: 0, code: 'network' },
+    )
+  }
+
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    let message = friendlyHttpMessage(response.status)
+    if (payload?.detail && typeof payload.detail === 'string') message = payload.detail
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('siaom:unauthorized'))
+    }
+    throw new ApiError(message, { status: response.status, code: 'http' })
+  }
+
+  const totalHeader = response.headers.get('X-Total-Count')
+  const items = Array.isArray(payload) ? payload : []
+  const total = totalHeader != null ? Number(totalHeader) : items.length
+  return { items, total }
+}
+
 export async function apiRequest(path, { method = 'GET', token, body } = {}) {
   let response
   try {

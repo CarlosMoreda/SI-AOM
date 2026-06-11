@@ -27,6 +27,7 @@ class DashboardKpisResponse(BaseModel):
 class OrcamentoRecenteItem(BaseModel):
     id_orcamento: int
     id_projeto: int
+    designacao_projeto: str | None = None
     versao: str
     estado: str
     data_criacao: datetime

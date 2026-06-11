@@ -76,12 +76,16 @@ def _construir_alertas(
     blocos: Iterable[tuple[str, Decimal, Decimal, Decimal]],
     limiar_percent: Decimal,
 ) -> list[AlertaDesvioResponse]:
-    """Gera um alerta por categoria cujo desvio (em modulo) excede o limiar.
+    """Gera um alerta por categoria cuja DERRAPAGEM excede o limiar.
 
     blocos: iteravel de (categoria, real, desvio_abs, desvio_percent).
     Quando `real == 0` a categoria e ignorada porque significa que ainda nao
     foi registado realizado para essa categoria (evita falso positivo de
     -100% quando a execucao ainda nao comecou).
+
+    So geram alerta os desvios POSITIVOS (custo real acima do orcado =
+    derrapagem = risco). Desvios negativos significam que a execucao ficou
+    abaixo do orcado (favoravel) e nao sao sinalizados como alerta.
 
     Severidade fica 'alta' quando o desvio passa o dobro do limiar.
     """
@@ -92,9 +96,10 @@ def _construir_alertas(
         # Sem realizado registado nesta categoria -> nao gera alerta.
         if real == 0:
             continue
-        if abs(desvio_percent) < limiar_percent:
+        # Apenas derrapagens (desvio positivo) acima do limiar geram alerta.
+        if desvio_percent < limiar_percent:
             continue
-        severidade = "alta" if abs(desvio_percent) >= limiar_alta else "media"
+        severidade = "alta" if desvio_percent >= limiar_alta else "media"
         alertas.append(
             AlertaDesvioResponse(
                 categoria=categoria,

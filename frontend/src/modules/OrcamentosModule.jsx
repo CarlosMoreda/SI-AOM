@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatDate, formatMoney, formatStatusLabel, formatVersionLabel } from '../utils/formatters'
-import { listProjects } from '../services/projectService'
+import Pagination from '../components/Pagination'
+import { listProjects, listProjectBudgets } from '../services/projectService'
 import {
   createOrcamento,
   deleteOrcamento,
   downloadOrcamentoPdf,
-  listOrcamentos,
+  listOrcamentosPaged,
   updateOrcamento,
   listOrcamentoMateriais,
   addOrcamentoMaterial,
@@ -24,24 +25,32 @@ import { listServicos } from '../services/servicoService'
 import OrcamentoDetailsPanel from './orcamentos/OrcamentoDetailsPanel'
 import OrcamentoDraftLines from './orcamentos/OrcamentoDraftLines'
 
-// Estados conforme o ciclo de vida do orçamento (relatório 3.5).
-const ESTADOS_ORC = [
-  'em_preparacao',
-  'em_revisao',
-  'validado',
-  'enviado',
-  'adjudicado',
-  'rejeitado',
-  'em_execucao',
-  'concluido',
-  'arquivado',
-]
+// Transições válidas do ciclo de vida do orçamento (relatório 3.5 / Figura 4).
+// Espelha o mapa do backend: o dropdown de edição só mostra o estado atual
+// e os estados seguintes permitidos.
+const TRANSICOES_ORC = {
+  em_preparacao: ['em_revisao'],
+  em_revisao: ['em_preparacao', 'validado'],
+  validado: ['enviado'],
+  enviado: ['adjudicado', 'rejeitado'],
+  adjudicado: ['em_execucao'],
+  em_execucao: ['concluido'],
+  concluido: ['arquivado'],
+  rejeitado: ['em_preparacao', 'arquivado'],
+  arquivado: [],
+}
+
+function estadosPermitidos(estadoAtual) {
+  const atual = String(estadoAtual || 'em_preparacao')
+  return [atual, ...(TRANSICOES_ORC[atual] || [])]
+}
 
 const EMPTY_ORC_FORM = {
   id_projeto: '',
   versao: '',
   estado: 'em_preparacao',
   margem_percentual: '',
+  quantidade_unidades: '1',
   observacoes: '',
 }
 
@@ -67,9 +76,13 @@ const EMPTY_DRAFT_SVC_FORM = {
   observacoes: '',
 }
 
+const PAGE_SIZE = 30
+
 export default function OrcamentosModule({ token }) {
   const [projects, setProjects] = useState([])
   const [orcamentos, setOrcamentos] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -81,6 +94,8 @@ export default function OrcamentosModule({ token }) {
   const [saving, setSaving] = useState(false)
   const [autoOpenAfterCreate, setAutoOpenAfterCreate] = useState(false)
   const [createWithLines, setCreateWithLines] = useState(false)
+  // Estado original (BD) do orcamento em edicao: ancora as transicoes validas.
+  const [editingOrcEstado, setEditingOrcEstado] = useState('em_preparacao')
 
   // Draft lines for "create everything" flow
   const [draftMateriais, setDraftMateriais] = useState([])
@@ -127,14 +142,29 @@ export default function OrcamentosModule({ token }) {
     }
   }, [token])
 
-  const load = useCallback(async () => {
+  // Projetos: lista completa (dropdowns de filtro e de criacao).
+  const loadProjects = useCallback(async () => {
+    if (!token) return
+    try {
+      setProjects(await listProjects(token))
+    } catch (e) {
+      setError(e.message)
+    }
+  }, [token])
+
+  // Orcamentos: paginados server-side, com filtro opcional por projeto.
+  const loadOrcamentos = useCallback(async (p, idProjeto) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      const [projs, orcs] = await Promise.all([listProjects(token), listOrcamentos(token)])
-      setProjects(projs)
-      setOrcamentos(orcs)
+      const res = await listOrcamentosPaged(token, {
+        idProjeto,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setOrcamentos(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -143,9 +173,13 @@ export default function OrcamentosModule({ token }) {
   }, [token])
 
   useEffect(() => {
-    load()
+    loadProjects()
     loadCatalogs()
-  }, [load, loadCatalogs])
+  }, [loadProjects, loadCatalogs])
+
+  useEffect(() => {
+    loadOrcamentos(page, filterProjectId)
+  }, [page, filterProjectId, loadOrcamentos])
 
   const loadLinhas = useCallback(async (orc) => {
     if (!orc || !token) return
@@ -166,38 +200,42 @@ export default function OrcamentosModule({ token }) {
     }
   }, [token])
 
-  const getProjectOrcamentos = useCallback(
-    (projectId) => orcamentos.filter((o) => Number(o.id_projeto) === Number(projectId)),
-    [orcamentos],
-  )
+  // Calcula a proxima versao a partir da lista de orcamentos de UM projeto.
+  function computeNextVersion(existing) {
+    const existingVersions = new Set(
+      existing.map((o) => String(o.versao || '').trim().toLowerCase()),
+    )
+    const numericVersions = existing
+      .map((o) => {
+        const m = String(o.versao || '').trim().match(/^v?(\d+)$/i)
+        return m ? Number(m[1]) : null
+      })
+      .filter((v) => Number.isFinite(v))
 
-  const getNextVersionForProject = useCallback(
-    (projectId) => {
-      const existing = getProjectOrcamentos(projectId)
-      const existingVersions = new Set(existing.map((o) => String(o.versao || '').trim().toLowerCase()))
+    const initialNumber = numericVersions.length > 0
+      ? Math.max(...numericVersions) + 1
+      : existing.length + 1
 
-      const numericVersions = existing
-        .map((o) => {
-          const m = String(o.versao || '').trim().match(/^v?(\d+)$/i)
-          return m ? Number(m[1]) : null
-        })
-        .filter((v) => Number.isFinite(v))
+    let candidateNumber = Math.max(1, initialNumber)
+    let candidate = `v${candidateNumber}`
+    while (existingVersions.has(candidate.toLowerCase())) {
+      candidateNumber += 1
+      candidate = `v${candidateNumber}`
+    }
+    return candidate
+  }
 
-      const initialNumber = numericVersions.length > 0
-        ? Math.max(...numericVersions) + 1
-        : existing.length + 1
-
-      let candidateNumber = Math.max(1, initialNumber)
-      let candidate = `v${candidateNumber}`
-      while (existingVersions.has(candidate.toLowerCase())) {
-        candidateNumber += 1
-        candidate = `v${candidateNumber}`
-      }
-
-      return candidate
-    },
-    [getProjectOrcamentos],
-  )
+  // Vai buscar TODOS os orcamentos do projeto (independente da paginacao da
+  // lista) para sugerir uma versao que nao colida com as existentes.
+  const fetchSuggestedVersion = useCallback(async (projectId) => {
+    if (!projectId) return ''
+    try {
+      const budgets = await listProjectBudgets(token, Number(projectId))
+      return computeNextVersion(budgets)
+    } catch {
+      return 'v1'
+    }
+  }, [token])
 
   const buildCreateForm = useCallback(
     (projectIdCandidate) => {
@@ -207,10 +245,10 @@ export default function OrcamentosModule({ token }) {
       return {
         ...EMPTY_ORC_FORM,
         id_projeto: idProjeto,
-        versao: idProjeto ? getNextVersionForProject(Number(idProjeto)) : '',
+        versao: '',
       }
     },
-    [getNextVersionForProject, projects],
+    [projects],
   )
 
   const resetDraftLines = useCallback(() => {
@@ -230,20 +268,30 @@ export default function OrcamentosModule({ token }) {
     loadLinhas(orc)
   }
 
-  function openCreate() {
+  async function openCreate() {
     setEditingOrcId(null)
     setAutoOpenAfterCreate(false)
     setCreateWithLines(false)
     resetDraftLines()
-    setOrcForm(buildCreateForm(filterProjectId))
+    const baseForm = buildCreateForm(filterProjectId)
+    setOrcForm(baseForm)
     setShowOrcForm(true)
     setSuccess('')
     setError('')
+    if (baseForm.id_projeto) {
+      const v = await fetchSuggestedVersion(baseForm.id_projeto)
+      setOrcForm((f) => (
+        String(f.id_projeto) === String(baseForm.id_projeto) && !f.versao
+          ? { ...f, versao: v }
+          : f
+      ))
+    }
   }
 
   function openEdit(orc, e) {
     e.stopPropagation()
     setEditingOrcId(orc.id_orcamento)
+    setEditingOrcEstado(orc.estado ?? 'em_preparacao')
     setAutoOpenAfterCreate(false)
     setCreateWithLines(false)
     resetDraftLines()
@@ -252,6 +300,7 @@ export default function OrcamentosModule({ token }) {
       versao: orc.versao ?? '',
       estado: orc.estado ?? 'em_preparacao',
       margem_percentual: orc.margem_percentual ?? '',
+      quantidade_unidades: String(orc.quantidade_unidades ?? 1),
       observacoes: orc.observacoes ?? '',
     })
     setShowOrcForm(true)
@@ -394,17 +443,19 @@ export default function OrcamentosModule({ token }) {
     }
   }
 
-  function handleOrcProjectChange(projectId) {
+  async function handleOrcProjectChange(projectId) {
     if (editingOrcId) {
       setOrcForm((f) => ({ ...f, id_projeto: projectId }))
       return
     }
 
-    setOrcForm((f) => ({
-      ...f,
-      id_projeto: projectId,
-      versao: projectId ? getNextVersionForProject(Number(projectId)) : '',
-    }))
+    setOrcForm((f) => ({ ...f, id_projeto: projectId, versao: '' }))
+    if (projectId) {
+      const v = await fetchSuggestedVersion(projectId)
+      setOrcForm((f) => (
+        String(f.id_projeto) === String(projectId) ? { ...f, versao: v } : f
+      ))
+    }
   }
 
   async function handleSubmitOrc(event) {
@@ -418,7 +469,7 @@ export default function OrcamentosModule({ token }) {
     const shouldCreateWithLines = isCreate && createWithLines
     const resolvedVersao =
       String(orcForm.versao || '').trim() ||
-      (orcForm.id_projeto ? getNextVersionForProject(Number(orcForm.id_projeto)) : '')
+      (orcForm.id_projeto ? await fetchSuggestedVersion(orcForm.id_projeto) : '')
 
     if (!orcForm.id_projeto) {
       setError('Projeto obrigatório.')
@@ -441,8 +492,11 @@ export default function OrcamentosModule({ token }) {
     const payload = {
       id_projeto: Number(orcForm.id_projeto),
       versao: resolvedVersao,
-      estado: orcForm.estado,
+      // Criacao comeca sempre em preparacao (ciclo de vida); na edicao o
+      // estado vem do dropdown restrito as transicoes validas.
+      estado: isCreate ? 'em_preparacao' : orcForm.estado,
       margem_percentual: orcForm.margem_percentual !== '' ? Number(orcForm.margem_percentual) : null,
+      quantidade_unidades: orcForm.quantidade_unidades !== '' ? Number(orcForm.quantidade_unidades) : 1,
       observacoes: orcForm.observacoes || null,
     }
 
@@ -467,7 +521,7 @@ export default function OrcamentosModule({ token }) {
         )
       }
       cancelForm()
-      await load()
+      await loadOrcamentos(page, filterProjectId)
 
       if (created && (shouldAutoOpen || shouldCreateWithLines)) {
         setFilterProjectId(String(created.id_projeto))
@@ -498,7 +552,7 @@ export default function OrcamentosModule({ token }) {
       await deleteOrcamento(token, orc.id_orcamento)
       if (selectedOrc?.id_orcamento === orc.id_orcamento) setSelectedOrc(null)
       setSuccess('Orçamento eliminado.')
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -522,7 +576,7 @@ export default function OrcamentosModule({ token }) {
       setAddMatForm({ id_material: '', quantidade: '', peso_kg: '', area_m2: '', desperdicio_percent: '0', observacoes: '' })
       setSuccess('Linha de material adicionada.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -536,7 +590,7 @@ export default function OrcamentosModule({ token }) {
       await deleteOrcamentoMaterial(token, idLinha)
       setSuccess('Linha de material removida.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -557,7 +611,7 @@ export default function OrcamentosModule({ token }) {
       setAddOpForm({ id_operacao: '', horas: '', tempo_setup_h: '0', observacoes: '' })
       setSuccess('Linha de operação adicionada.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -571,7 +625,7 @@ export default function OrcamentosModule({ token }) {
       await deleteOrcamentoOperacao(token, idLinha)
       setSuccess('Linha de operação removida.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -591,7 +645,7 @@ export default function OrcamentosModule({ token }) {
       setAddSvcForm({ id_servico: '', quantidade: '', observacoes: '' })
       setSuccess('Linha de serviço adicionada.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -605,7 +659,7 @@ export default function OrcamentosModule({ token }) {
       await deleteOrcamentoServico(token, idLinha)
       setSuccess('Linha de serviço removida.')
       await loadLinhas(selectedOrc)
-      await load()
+      await loadOrcamentos(page, filterProjectId)
     } catch (e) {
       setError(e.message)
     }
@@ -626,23 +680,26 @@ export default function OrcamentosModule({ token }) {
     }
   }
 
-  const filteredOrcs = orcamentos.filter(
-    (o) => !filterProjectId || String(o.id_projeto) === filterProjectId,
-  )
+  // O filtro por projeto e a paginacao sao feitos server-side; `orcamentos`
+  // ja vem filtrado e paginado.
+  function handleFilterChange(value) {
+    setFilterProjectId(value)
+    setPage(1)
+  }
 
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Orçamentos</h3>
-          <span>{loading ? 'A carregar...' : `${orcamentos.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
         {success && <p className="message success">{success}</p>}
 
         <div className="module-toolbar">
-          <select value={filterProjectId} onChange={(e) => setFilterProjectId(e.target.value)}>
+          <select value={filterProjectId} onChange={(e) => handleFilterChange(e.target.value)}>
             <option value="">Todos os projetos</option>
             {projects.map((p) => (
               <option key={p.id_projeto} value={p.id_projeto}>
@@ -686,23 +743,40 @@ export default function OrcamentosModule({ token }) {
                 <input
                   value={orcForm.versao}
                   onChange={(e) => setOrcForm((f) => ({ ...f, versao: e.target.value }))}
-                  placeholder={
-                    !editingOrcId && orcForm.id_projeto
-                      ? `Sugestão: ${getNextVersionForProject(Number(orcForm.id_projeto))}`
-                      : ''
-                  }
+                  placeholder="ex.: v1, v2 (sugerida automaticamente)"
                   required={Boolean(editingOrcId)}
                 />
               </label>
               <label>
                 Estado
-                <select value={orcForm.estado} onChange={(e) => setOrcForm((f) => ({ ...f, estado: e.target.value }))}>
-                  {ESTADOS_ORC.map((s) => <option key={s} value={s}>{formatStatusLabel(s)}</option>)}
-                </select>
+                {editingOrcId ? (
+                  <select
+                    value={orcForm.estado}
+                    onChange={(e) => setOrcForm((f) => ({ ...f, estado: e.target.value }))}
+                    title="Apenas transições válidas do ciclo de vida"
+                  >
+                    {estadosPermitidos(editingOrcEstado).map((s) => (
+                      <option key={s} value={s}>{formatStatusLabel(s)}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input value={formatStatusLabel('em_preparacao')} disabled title="Um orçamento novo começa sempre em preparação" />
+                )}
               </label>
               <label>
                 Margem %
                 <input type="number" step="0.01" value={orcForm.margem_percentual} onChange={(e) => setOrcForm((f) => ({ ...f, margem_percentual: e.target.value }))} />
+              </label>
+              <label>
+                Nº de unidades
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={orcForm.quantidade_unidades}
+                  onChange={(e) => setOrcForm((f) => ({ ...f, quantidade_unidades: e.target.value }))}
+                  title="Nº de estruturas iguais. As linhas são por unidade; os totais são multiplicados por este valor."
+                />
               </label>
             </div>
 
@@ -764,13 +838,14 @@ export default function OrcamentosModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table orcamentos-fit">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Projeto</th>
                 <th>Versão</th>
+                <th>Uni.</th>
                 <th>Estado</th>
                 <th>Margem%</th>
                 <th>Custo Total</th>
@@ -780,7 +855,7 @@ export default function OrcamentosModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filteredOrcs.map((o) => (
+              {orcamentos.map((o) => (
                 <tr
                   key={o.id_orcamento}
                   className={selectedOrc?.id_orcamento === o.id_orcamento ? 'row-selected' : 'row-clickable'}
@@ -789,6 +864,7 @@ export default function OrcamentosModule({ token }) {
                   <td>{o.id_orcamento}</td>
                   <td>#{o.id_projeto}</td>
                   <td>{o.versao}</td>
+                  <td>{o.quantidade_unidades ?? 1}</td>
                   <td><span className={`badge badge-${o.estado}`}>{formatStatusLabel(o.estado)}</span></td>
                   <td>{o.margem_percentual != null ? `${o.margem_percentual}%` : '-'}</td>
                   <td>{formatMoney(o.custo_total_orcado)}</td>
@@ -802,12 +878,20 @@ export default function OrcamentosModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filteredOrcs.length === 0 && (
-                <tr><td colSpan={9}>Sem orçamentos.</td></tr>
+              {orcamentos.length === 0 && (
+                <tr><td colSpan={10}>{loading ? 'A carregar...' : 'Sem orçamentos.'}</td></tr>
               )}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
 
       {selectedOrc && (

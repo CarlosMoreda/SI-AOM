@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatMoney } from '../utils/formatters'
+import Pagination from '../components/Pagination'
 import {
   createServico,
   deleteServico,
-  listServicos,
+  listServicosPaged,
   updateServico,
 } from '../services/servicoService'
+
+const PAGE_SIZE = 30
 
 const EMPTY_FORM = {
   codigo: '',
@@ -18,6 +21,8 @@ const EMPTY_FORM = {
 
 export default function ServicosModule({ token }) {
   const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -27,13 +32,20 @@ export default function ServicosModule({ token }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p, q) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      setItems(await listServicos(token))
+      const res = await listServicosPaged(token, {
+        q,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setItems(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -42,8 +54,16 @@ export default function ServicosModule({ token }) {
   }, [token])
 
   useEffect(() => {
-    load()
-  }, [load])
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    load(page, debouncedSearch)
+  }, [page, debouncedSearch, load])
 
   function openCreate() {
     setEditingId(null)
@@ -98,7 +118,7 @@ export default function ServicosModule({ token }) {
         setSuccess('Serviço criado.')
       }
       cancelForm()
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -113,25 +133,18 @@ export default function ServicosModule({ token }) {
     try {
       await deleteServico(token, item.id_servico)
       setSuccess('Serviço eliminado.')
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     }
   }
-
-  const filtered = items.filter(
-    (i) =>
-      !search ||
-      i.codigo?.toLowerCase().includes(search.toLowerCase()) ||
-      i.nome?.toLowerCase().includes(search.toLowerCase()),
-  )
 
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Serviços</h3>
-          <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
@@ -180,8 +193,8 @@ export default function ServicosModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table servicos-fit">
             <thead>
               <tr>
                 <th>ID</th>
@@ -194,7 +207,7 @@ export default function ServicosModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i) => (
+              {items.map((i) => (
                 <tr key={i.id_servico}>
                   <td>{i.id_servico}</td>
                   <td>{i.codigo}</td>
@@ -210,10 +223,18 @@ export default function ServicosModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={7}>Sem serviços.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={7}>{loading ? 'A carregar...' : 'Sem serviços.'}</td></tr>}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

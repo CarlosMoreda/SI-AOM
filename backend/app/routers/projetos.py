@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,7 @@ from app.models.orcamento import Orcamento
 from app.models.projeto import Projeto
 from app.schemas.orcamento import OrcamentoResponse
 from app.schemas.projeto import ProjetoCreate, ProjetoResponse, ProjetoUpdate
+from app.services.orcamento_service import sincronizar_orcamentos_do_projeto
 
 # Producao precisa de LER projetos para o filtro do modulo Realizado.
 READ_DEPS = [Depends(require_roles(
@@ -30,15 +31,31 @@ router = APIRouter()
 
 @router.get("/", response_model=list[ProjetoResponse], dependencies=READ_DEPS)
 def listar_projetos(
-    limit: int = Query(
-        default=500,
-        gt=0,
-        le=10000,
-        description="Maximo de registos a devolver (mais recentes primeiro)",
+    response: Response,
+    q: str | None = Query(None, description="Pesquisa por referencia ou designacao"),
+    limit: int | None = Query(
+        default=None, ge=1, le=500,
+        description="Registos por pagina. Omitir devolve todos (dropdowns).",
     ),
+    offset: int = Query(default=0, ge=0, description="Deslocamento (pagina)"),
     db: Session = Depends(get_db),
 ):
-    stmt = select(Projeto).order_by(Projeto.id_projeto.desc()).limit(limit)
+    base = select(Projeto)
+    if q:
+        termo = func.unaccent(f"%{q.lower()}%")
+        base = base.where(
+            or_(
+                func.unaccent(func.lower(Projeto.referencia)).like(termo),
+                func.unaccent(func.lower(Projeto.designacao)).like(termo),
+            )
+        )
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    response.headers["X-Total-Count"] = str(total)
+
+    stmt = base.order_by(Projeto.id_projeto.desc())
+    if limit is not None:
+        stmt = stmt.limit(limit).offset(offset)
     return db.scalars(stmt).all()
 
 
@@ -105,6 +122,7 @@ def atualizar_projeto(id_projeto: int, payload: ProjetoUpdate, db: Session = Dep
         setattr(projeto, campo, valor)
 
     try:
+        sincronizar_orcamentos_do_projeto(db, projeto)
         db.commit()
         db.refresh(projeto)
     except IntegrityError:

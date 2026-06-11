@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatDate } from '../utils/formatters'
+import Pagination from '../components/Pagination'
 import {
   createCliente,
   deleteCliente,
-  listClientes,
+  listClientesPaged,
   updateCliente,
 } from '../services/clienteService'
+
+const PAGE_SIZE = 30
 
 const EMPTY_FORM = {
   nome: '',
@@ -25,6 +28,8 @@ function emptyToNull(value) {
 
 export default function ClientesModule({ token }) {
   const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -34,13 +39,20 @@ export default function ClientesModule({ token }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p, q) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      setItems(await listClientes(token))
+      const res = await listClientesPaged(token, {
+        q,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setItems(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -49,8 +61,16 @@ export default function ClientesModule({ token }) {
   }, [token])
 
   useEffect(() => {
-    load()
-  }, [load])
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    load(page, debouncedSearch)
+  }, [page, debouncedSearch, load])
 
   function openCreate() {
     setEditingId(null)
@@ -111,7 +131,7 @@ export default function ClientesModule({ token }) {
         setSuccess('Cliente criado.')
       }
       cancelForm()
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -126,27 +146,18 @@ export default function ClientesModule({ token }) {
     try {
       await deleteCliente(token, item.id_cliente)
       setSuccess('Cliente eliminado.')
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     }
   }
-
-  const normalizedSearch = search.toLowerCase()
-  const filtered = items.filter(
-    (i) =>
-      !normalizedSearch ||
-      i.nome?.toLowerCase().includes(normalizedSearch) ||
-      i.nif?.toLowerCase().includes(normalizedSearch) ||
-      i.email?.toLowerCase().includes(normalizedSearch),
-  )
 
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Clientes</h3>
-          <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
@@ -205,8 +216,8 @@ export default function ClientesModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll clientes-table-wrap">
-          <table className="clientes-table">
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table clientes-fit">
             <thead>
               <tr>
                 <th>ID</th>
@@ -221,7 +232,7 @@ export default function ClientesModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i) => (
+              {items.map((i) => (
                 <tr key={i.id_cliente}>
                   <td>{i.id_cliente}</td>
                   <td>{i.nome}</td>
@@ -239,10 +250,18 @@ export default function ClientesModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={9}>Sem clientes.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9}>{loading ? 'A carregar...' : 'Sem clientes.'}</td></tr>}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

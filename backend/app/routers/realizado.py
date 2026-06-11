@@ -16,6 +16,7 @@ from app.dependencies import (
 from app.models.detalhe_material_orcamento import DetalheMaterialOrcamento
 from app.models.detalhe_operacao_orcamento import DetalheOperacaoOrcamento
 from app.models.detalhe_servico_orcamento import DetalheServicoOrcamento
+from app.models.material import Material
 from app.models.orcamento import Orcamento
 from app.models.realizado_material import RealizadoMaterial
 from app.models.realizado_operacao import RealizadoOperacao
@@ -33,7 +34,10 @@ from app.schemas.realizado import (
     RealizadoServicoResponse,
     RealizadoServicoUpdate,
 )
-from app.services.orcamento_service import tentar_transicionar_para_concluido
+from app.services.orcamento_service import (
+    tentar_transicionar_para_concluido,
+    validar_estado_para_realizado,
+)
 
 router = APIRouter()
 
@@ -59,8 +63,19 @@ def _q4(value) -> Decimal:
     return _to_decimal(value).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
 
 
-def _calc_custo_material(quantidade: Decimal, custo_unitario_real: Decimal) -> Decimal:
-    return _q2(_to_decimal(quantidade) * _to_decimal(custo_unitario_real))
+def _calc_custo_material(
+    quantidade: Decimal,
+    custo_unitario_real: Decimal,
+    unidade: str | None = None,
+    peso_kg: Decimal | None = None,
+) -> Decimal:
+    # Coerente com o orcado: materiais cobrados por kg usam o peso; os
+    # restantes (tubo em metros, pecas em 'un') usam a quantidade.
+    if unidade == "kg" and peso_kg is not None:
+        base_calculo = _to_decimal(peso_kg)
+    else:
+        base_calculo = _to_decimal(quantidade)
+    return _q2(base_calculo * _to_decimal(custo_unitario_real))
 
 
 def _calc_custo_operacao(
@@ -99,6 +114,57 @@ def _build_resumo_response(
         custo_total_real=custo_total_real,
         horas_reais_totais=horas_reais_totais,
     )
+
+
+def _garantir_estado_para_realizado(db: Session, id_orcamento: int) -> None:
+    permitido, detalhe = validar_estado_para_realizado(db, id_orcamento)
+    if permitido:
+        return
+
+    status_code = status.HTTP_404_NOT_FOUND if detalhe in {
+        "Orçamento não encontrado",
+        "Projeto não encontrado",
+    } else status.HTTP_409_CONFLICT
+    raise HTTPException(status_code=status_code, detail=detalhe)
+
+
+def _garantir_material_realizado_editavel(
+    db: Session,
+    registo: RealizadoMaterial,
+) -> None:
+    linha = db.get(DetalheMaterialOrcamento, registo.id_linha_material)
+    if not linha:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Linha de material nao encontrada",
+        )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
+
+
+def _garantir_operacao_realizada_editavel(
+    db: Session,
+    registo: RealizadoOperacao,
+) -> None:
+    linha = db.get(DetalheOperacaoOrcamento, registo.id_linha_operacao)
+    if not linha:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Linha de operacao nao encontrada",
+        )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
+
+
+def _garantir_servico_realizado_editavel(
+    db: Session,
+    registo: RealizadoServico,
+) -> None:
+    linha = db.get(DetalheServicoOrcamento, registo.id_linha_servico)
+    if not linha:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Linha de servico nao encontrada",
+        )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
 
 
 def _rows_to_decimal_dict(rows) -> dict[int, Decimal]:
@@ -222,17 +288,26 @@ def criar_realizado_material(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Linha de material nao encontrada",
         )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
 
     custo_unitario_real = payload.custo_unitario_real
     if custo_unitario_real is None:
         custo_unitario_real = linha.preco_unitario_snapshot
+
+    material = db.get(Material, linha.id_material)
+    unidade = material.unidade if material else None
 
     registo = RealizadoMaterial(
         id_linha_material=payload.id_linha_material,
         quantidade=payload.quantidade,
         peso_kg=payload.peso_kg,
         custo_unitario_real=_q4(custo_unitario_real),
-        custo_total_real=_calc_custo_material(payload.quantidade, custo_unitario_real),
+        custo_total_real=_calc_custo_material(
+            payload.quantidade,
+            custo_unitario_real,
+            unidade,
+            payload.peso_kg,
+        ),
         observacoes=payload.observacoes,
     )
 
@@ -269,6 +344,7 @@ def atualizar_realizado_material(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de material nao encontrado",
         )
+    _garantir_material_realizado_editavel(db, registo)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -281,9 +357,14 @@ def atualizar_realizado_material(
     if "custo_unitario_real" in dados and dados["custo_unitario_real"] is not None:
         registo.custo_unitario_real = _q4(dados["custo_unitario_real"])
 
+    # Unidade do material desta linha (decide peso vs quantidade).
+    linha_mat = db.get(DetalheMaterialOrcamento, registo.id_linha_material)
+    material = db.get(Material, linha_mat.id_material) if linha_mat else None
     registo.custo_total_real = _calc_custo_material(
         registo.quantidade,
         registo.custo_unitario_real,
+        material.unidade if material else None,
+        registo.peso_kg,
     )
 
     try:
@@ -314,6 +395,7 @@ def eliminar_realizado_material(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de material nao encontrado",
         )
+    _garantir_material_realizado_editavel(db, registo)
 
     db.delete(registo)
     db.commit()
@@ -353,6 +435,7 @@ def criar_realizado_operacao(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Linha de operacao nao encontrada",
         )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
 
     custo_hora_real = payload.custo_hora_real
     if custo_hora_real is None:
@@ -403,6 +486,7 @@ def atualizar_realizado_operacao(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de operacao nao encontrado",
         )
+    _garantir_operacao_realizada_editavel(db, registo)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -449,6 +533,7 @@ def eliminar_realizado_operacao(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de operacao nao encontrado",
         )
+    _garantir_operacao_realizada_editavel(db, registo)
 
     db.delete(registo)
     db.commit()
@@ -488,6 +573,7 @@ def criar_realizado_servico(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Linha de servico nao encontrada",
         )
+    _garantir_estado_para_realizado(db, linha.id_orcamento)
 
     preco_unitario_real = payload.preco_unitario_real
     if preco_unitario_real is None:
@@ -536,6 +622,7 @@ def atualizar_realizado_servico(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de servico nao encontrado",
         )
+    _garantir_servico_realizado_editavel(db, registo)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -579,6 +666,7 @@ def eliminar_realizado_servico(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Registo realizado de servico nao encontrado",
         )
+    _garantir_servico_realizado_editavel(db, registo)
 
     db.delete(registo)
     db.commit()

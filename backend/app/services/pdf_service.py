@@ -6,6 +6,7 @@ dependencias de sistema (ao contrario do WeasyPrint que precisa de GTK).
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from typing import Iterable
@@ -119,15 +120,40 @@ def gerar_pdf_orcamento(db: Session, id_orcamento: int) -> bytes:
         else f"v{orcamento.versao}"
     )
 
+    materiais = _linhas_materiais(db, id_orcamento)
+    operacoes = _linhas_operacoes(db, id_orcamento)
+    servicos = _linhas_servicos(db, id_orcamento)
+
+    # As linhas (e respetivos custos) sao POR UNIDADE. Os subtotais por unidade
+    # somam diretamente as linhas; os totais do cabecalho ja vem x quantidade.
+    qtd = orcamento.quantidade_unidades or 1
+    sub_mat_unit = sum((l["custo_total"] for l in materiais), Decimal("0"))
+    sub_op_unit = sum((l["custo_total"] for l in operacoes), Decimal("0"))
+    sub_svc_unit = sum((l["custo_total"] for l in servicos), Decimal("0"))
+    horas_unit = (
+        Decimal(str(orcamento.horas_totais_previstas)) / qtd
+        if qtd else Decimal(str(orcamento.horas_totais_previstas))
+    )
+    custo_unitario = (
+        Decimal(str(orcamento.custo_total_orcado)) / qtd
+        if qtd else Decimal(str(orcamento.custo_total_orcado))
+    )
+
     contexto = {
         "orcamento": orcamento,
         "projeto": projeto,
         "cliente": cliente,
-        "materiais": _linhas_materiais(db, id_orcamento),
-        "operacoes": _linhas_operacoes(db, id_orcamento),
-        "servicos": _linhas_servicos(db, id_orcamento),
+        "materiais": materiais,
+        "operacoes": operacoes,
+        "servicos": servicos,
         "data_emissao": date.today().strftime("%d/%m/%Y"),
         "versao_label": versao_label,
+        "quantidade_unidades": qtd,
+        "sub_mat_unit": sub_mat_unit,
+        "sub_op_unit": sub_op_unit,
+        "sub_svc_unit": sub_svc_unit,
+        "horas_unit": horas_unit,
+        "custo_unitario": custo_unitario,
     }
 
     template = _env.get_template("orcamento.html")

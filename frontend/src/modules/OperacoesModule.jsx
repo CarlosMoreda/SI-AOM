@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatMoney } from '../utils/formatters'
+import Pagination from '../components/Pagination'
 import {
   createOperacao,
   deleteOperacao,
-  listOperacoes,
+  listOperacoesPaged,
   updateOperacao,
 } from '../services/operacaoService'
+
+const PAGE_SIZE = 30
 
 const EMPTY_FORM = {
   codigo: '',
@@ -19,6 +22,8 @@ const EMPTY_FORM = {
 
 export default function OperacoesModule({ token }) {
   const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -28,13 +33,20 @@ export default function OperacoesModule({ token }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p, q) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      setItems(await listOperacoes(token))
+      const res = await listOperacoesPaged(token, {
+        q,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setItems(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -43,8 +55,16 @@ export default function OperacoesModule({ token }) {
   }, [token])
 
   useEffect(() => {
-    load()
-  }, [load])
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    load(page, debouncedSearch)
+  }, [page, debouncedSearch, load])
 
   function openCreate() {
     setEditingId(null)
@@ -101,7 +121,7 @@ export default function OperacoesModule({ token }) {
         setSuccess('Operação criada.')
       }
       cancelForm()
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -116,25 +136,18 @@ export default function OperacoesModule({ token }) {
     try {
       await deleteOperacao(token, item.id_operacao)
       setSuccess('Operação eliminada.')
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     }
   }
-
-  const filtered = items.filter(
-    (i) =>
-      !search ||
-      i.codigo?.toLowerCase().includes(search.toLowerCase()) ||
-      i.nome?.toLowerCase().includes(search.toLowerCase()),
-  )
 
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Operações</h3>
-          <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
@@ -187,8 +200,8 @@ export default function OperacoesModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table operacoes-fit">
             <thead>
               <tr>
                 <th>ID</th>
@@ -202,7 +215,7 @@ export default function OperacoesModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i) => (
+              {items.map((i) => (
                 <tr key={i.id_operacao}>
                   <td>{i.id_operacao}</td>
                   <td>{i.codigo}</td>
@@ -219,10 +232,18 @@ export default function OperacoesModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={8}>Sem operações.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={8}>{loading ? 'A carregar...' : 'Sem operações.'}</td></tr>}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

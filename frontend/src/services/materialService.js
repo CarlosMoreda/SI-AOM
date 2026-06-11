@@ -1,7 +1,12 @@
-import { apiRequest } from './apiClient.js'
+import { apiRequest, apiRequestPaged } from './apiClient.js'
 
 export async function listMateriais(token) {
   return apiRequest('/materiais/', { token })
+}
+
+/** Lista paginada de materiais: devolve { items, total }. */
+export async function listMateriaisPaged(token, { q = '', limit = 30, offset = 0 } = {}) {
+  return apiRequestPaged('/materiais/', { token, params: { q, limit, offset } })
 }
 
 export async function createMaterial(token, payload) {

@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { formatDate, formatStatusLabel } from '../utils/formatters'
+import Pagination from '../components/Pagination'
 import { listClientes } from '../services/clienteService'
 import {
   createProject,
   deleteProject,
-  listProjects,
+  listProjectsPaged,
   updateProject,
 } from '../services/projectService'
 
-const ESTADOS = ['em_analise', 'aprovado', 'em_execucao', 'concluido']
+const PAGE_SIZE = 30
+
+const ESTADOS = [
+  'em_analise',
+  'planeado',
+  'aprovado',
+  'em_execucao',
+  'concluido',
+  'cancelado',
+]
 
 const EMPTY_FORM = {
   referencia: '',
@@ -29,6 +39,8 @@ const EMPTY_FORM = {
 
 export default function ProjetosModule({ token }) {
   const [projects, setProjects] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,18 +52,22 @@ export default function ProjetosModule({ token }) {
   const [saving, setSaving] = useState(false)
 
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const load = useCallback(async () => {
+  // Projetos: paginados (server-side). Clientes: lista completa para o
+  // dropdown do formulario e para resolver o nome na tabela.
+  const loadProjects = useCallback(async (p, q) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      const [projectRows, clientRows] = await Promise.all([
-        listProjects(token),
-        listClientes(token),
-      ])
-      setProjects(projectRows)
-      setClients(clientRows)
+      const res = await listProjectsPaged(token, {
+        q,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setProjects(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -60,8 +76,21 @@ export default function ProjetosModule({ token }) {
   }, [token])
 
   useEffect(() => {
-    load()
-  }, [load])
+    if (!token) return
+    listClientes(token).then(setClients).catch(() => {})
+  }, [token])
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  useEffect(() => {
+    loadProjects(page, debouncedSearch)
+  }, [page, debouncedSearch, loadProjects])
 
   function openCreate() {
     setEditingId(null)
@@ -134,7 +163,7 @@ export default function ProjetosModule({ token }) {
         setSuccess('Projeto criado.')
       }
       cancelForm()
-      await load()
+      await loadProjects(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -149,7 +178,7 @@ export default function ProjetosModule({ token }) {
     try {
       await deleteProject(token, project.id_projeto)
       setSuccess('Projeto eliminado.')
-      await load()
+      await loadProjects(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     }
@@ -160,24 +189,12 @@ export default function ProjetosModule({ token }) {
     [clients],
   )
 
-  const normalizedSearch = search.toLowerCase()
-  const filtered = projects.filter((p) => {
-    const clientName = clientById.get(p.id_cliente)?.nome || ''
-
-    return (
-      !normalizedSearch ||
-      p.referencia?.toLowerCase().includes(normalizedSearch) ||
-      p.designacao?.toLowerCase().includes(normalizedSearch) ||
-      clientName.toLowerCase().includes(normalizedSearch)
-    )
-  })
-
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Projetos</h3>
-          <span>{loading ? 'A carregar...' : `${projects.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
@@ -272,8 +289,8 @@ export default function ProjetosModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table projetos-fit">
             <thead>
               <tr>
                 <th>ID</th>
@@ -289,7 +306,7 @@ export default function ProjetosModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
+              {projects.map((p) => (
                 <tr key={p.id_projeto}>
                   <td>{p.id_projeto}</td>
                   <td>{p.referencia}</td>
@@ -308,14 +325,22 @@ export default function ProjetosModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {projects.length === 0 && (
                 <tr>
-                  <td colSpan={10}>Sem projetos.</td>
+                  <td colSpan={10}>{loading ? 'A carregar...' : 'Sem projetos.'}</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

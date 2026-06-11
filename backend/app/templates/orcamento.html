@@ -201,6 +201,17 @@
         <strong>{{ projeto.referencia }}</strong> &mdash; {{ projeto.designacao }}
       </td>
     </tr>
+    {% if quantidade_unidades > 1 %}
+    <tr>
+      <td class="label">Quantidade:</td>
+      <td colspan="3">
+        <strong>{{ quantidade_unidades }} estruturas iguais</strong>
+        <span style="font-size: 8pt; color: #56636f;">
+          &middot; linhas e subtotais por unidade; totais finais para a encomenda completa
+        </span>
+      </td>
+    </tr>
+    {% endif %}
     {% if projeto.tipologia or projeto.material_principal %}
     <tr>
       <td class="label">Caracteristicas:</td>
@@ -248,8 +259,8 @@
     </tr>
     {% endfor %}
     <tr class="subtotal">
-      <td colspan="4">Subtotal Materiais</td>
-      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_materiais|float) }} &euro;</td>
+      <td colspan="4">Subtotal Materiais{% if quantidade_unidades > 1 %} (por unidade){% endif %}</td>
+      <td class="num">{{ "{:,.2f}".format(sub_mat_unit|float) }} &euro;</td>
     </tr>
   </tbody>
 </table>
@@ -291,8 +302,8 @@
     </tr>
     {% endfor %}
     <tr class="subtotal">
-      <td colspan="5">Subtotal Operacoes ({{ "{:,.2f}".format(orcamento.horas_totais_previstas|float) }} h)</td>
-      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_operacoes|float) }} &euro;</td>
+      <td colspan="5">Subtotal Operacoes ({{ "{:,.2f}".format(horas_unit|float) }} h){% if quantidade_unidades > 1 %} (por unidade){% endif %}</td>
+      <td class="num">{{ "{:,.2f}".format(sub_op_unit|float) }} &euro;</td>
     </tr>
   </tbody>
 </table>
@@ -331,8 +342,8 @@
     </tr>
     {% endfor %}
     <tr class="subtotal">
-      <td colspan="4">Subtotal Servicos</td>
-      <td class="num">{{ "{:,.2f}".format(orcamento.custo_total_servicos|float) }} &euro;</td>
+      <td colspan="4">Subtotal Servicos{% if quantidade_unidades > 1 %} (por unidade){% endif %}</td>
+      <td class="num">{{ "{:,.2f}".format(sub_svc_unit|float) }} &euro;</td>
     </tr>
   </tbody>
 </table>
@@ -343,8 +354,18 @@
 <!-- =============================== TOTAIS ================================ -->
 <div class="totals-wrap">
   <table class="totals-table">
+    {% if quantidade_unidades > 1 %}
     <tr>
-      <td class="label">Custo total orcado:</td>
+      <td class="label">Custo por unidade:</td>
+      <td class="value">{{ "{:,.2f}".format(custo_unitario|float) }} &euro;</td>
+    </tr>
+    <tr>
+      <td class="label">Quantidade:</td>
+      <td class="value">&times; {{ quantidade_unidades }} unidades</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="label">Custo total orcado{% if quantidade_unidades > 1 %} (encomenda){% endif %}:</td>
       <td class="value">{{ "{:,.2f}".format(orcamento.custo_total_orcado|float) }} &euro;</td>
     </tr>
     {% if orcamento.margem_percentual %}

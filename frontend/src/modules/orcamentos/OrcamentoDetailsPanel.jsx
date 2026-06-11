@@ -1,4 +1,4 @@
-import { formatMoney, formatVersionLabel } from '../../utils/formatters'
+import { formatMoney, formatStatusLabel, formatVersionLabel } from '../../utils/formatters'
 
 const DETAIL_TABS = ['materiais', 'operacoes', 'servicos']
 
@@ -36,11 +36,39 @@ export default function OrcamentoDetailsPanel({
 }) {
   if (!selectedOrc) return null
 
+  // Lookups id -> item do catalogo, para mostrar codigo + nome nas linhas
+  // (mais legivel do que apenas o id).
+  const matById = new Map(catalogMateriais.map((m) => [m.id_material, m]))
+  const opById = new Map(catalogOperacoes.map((o) => [o.id_operacao, o]))
+  const svcById = new Map(catalogServicos.map((s) => [s.id_servico, s]))
+
+  const nomeMaterial = (id) => {
+    const m = matById.get(id)
+    return m ? `${m.codigo} - ${m.nome}` : `#${id}`
+  }
+  const nomeOperacao = (id) => {
+    const o = opById.get(id)
+    return o ? `${o.codigo} - ${o.nome}` : `#${id}`
+  }
+  const nomeServico = (id) => {
+    const s = svcById.get(id)
+    return s ? `${s.codigo} - ${s.nome}` : `#${id}`
+  }
+
+  // Linhas so sao editaveis em preparacao/revisao (espelha a regra do backend;
+  // a partir de validado o orcamento e imutavel: alteracoes implicam nova versao).
+  const linhasEditaveis = ['em_preparacao', 'em_revisao'].includes(selectedOrc.estado)
+
   return (
     <div className="panel orc-details-panel">
       <div className="panel-head">
         <h3>Orçamento #{selectedOrc.id_orcamento} - {formatVersionLabel(selectedOrc.versao)}</h3>
         <div className="orc-details-badges">
+          {(selectedOrc.quantidade_unidades ?? 1) > 1 && (
+            <span className="kpi-mini" title="As linhas abaixo são por unidade; os totais já estão multiplicados pelo nº de unidades.">
+              {selectedOrc.quantidade_unidades} unidades (linhas por unidade)
+            </span>
+          )}
           <span className="kpi-mini">Materiais: {formatMoney(selectedOrc.custo_total_materiais)}</span>
           <span className="kpi-mini">Operações: {formatMoney(selectedOrc.custo_total_operacoes)}</span>
           <span className="kpi-mini">Serviços: {formatMoney(selectedOrc.custo_total_servicos)}</span>
@@ -73,8 +101,16 @@ export default function OrcamentoDetailsPanel({
 
       {loadingLinhas && <p className="muted-text">A carregar linhas...</p>}
 
+      {!linhasEditaveis && (
+        <p className="muted-text">
+          Linhas bloqueadas: o orçamento está em "{formatStatusLabel(selectedOrc.estado)}".
+          Só é possível alterar linhas em preparação ou em revisão — para alterar, crie uma nova versão.
+        </p>
+      )}
+
       {activeTab === 'materiais' && (
         <div>
+          {linhasEditaveis && (
           <form className="add-line-form" onSubmit={onAddMaterial}>
             <select
               value={addMatForm.id_material}
@@ -126,13 +162,14 @@ export default function OrcamentoDetailsPanel({
             />
             <button type="submit">Adicionar</button>
           </form>
+          )}
 
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th>ID Linha</th>
-                  <th>ID Material</th>
+                  <th>Material</th>
                   <th>Qtd</th>
                   <th>Peso (kg)</th>
                   <th>Área (m2)</th>
@@ -147,7 +184,7 @@ export default function OrcamentoDetailsPanel({
                 {linhasMateriais.map((linha) => (
                   <tr key={linha.id_linha_material}>
                     <td>{linha.id_linha_material}</td>
-                    <td>{linha.id_material}</td>
+                    <td title={nomeMaterial(linha.id_material)}>{nomeMaterial(linha.id_material)}</td>
                     <td>{linha.quantidade}</td>
                     <td>{linha.peso_kg ?? '-'}</td>
                     <td>{linha.area_m2 ?? '-'}</td>
@@ -156,13 +193,15 @@ export default function OrcamentoDetailsPanel({
                     <td>{formatMoney(linha.custo_total)}</td>
                     <td>{linha.observacoes || '-'}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-xs btn-danger"
-                        onClick={() => onDeleteMaterial(linha.id_linha_material)}
-                      >
-                        X
-                      </button>
+                      {linhasEditaveis && (
+                        <button
+                          type="button"
+                          className="btn-xs btn-danger"
+                          onClick={() => onDeleteMaterial(linha.id_linha_material)}
+                        >
+                          X
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -175,6 +214,7 @@ export default function OrcamentoDetailsPanel({
 
       {activeTab === 'operacoes' && (
         <div>
+          {linhasEditaveis && (
           <form className="add-line-form" onSubmit={onAddOperacao}>
             <select
               value={addOpForm.id_operacao}
@@ -210,13 +250,14 @@ export default function OrcamentoDetailsPanel({
             />
             <button type="submit">Adicionar</button>
           </form>
+          )}
 
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th>ID Linha</th>
-                  <th>ID Operação</th>
+                  <th>Operação</th>
                   <th>Horas</th>
                   <th>Setup h</th>
                   <th>Custo/h</th>
@@ -229,20 +270,22 @@ export default function OrcamentoDetailsPanel({
                 {linhasOperacoes.map((linha) => (
                   <tr key={linha.id_linha_operacao}>
                     <td>{linha.id_linha_operacao}</td>
-                    <td>{linha.id_operacao}</td>
+                    <td title={nomeOperacao(linha.id_operacao)}>{nomeOperacao(linha.id_operacao)}</td>
                     <td>{linha.horas}</td>
                     <td>{linha.tempo_setup_h}</td>
                     <td>{formatMoney(linha.custo_hora_snapshot)}</td>
                     <td>{formatMoney(linha.custo_total)}</td>
                     <td>{linha.observacoes || '-'}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-xs btn-danger"
-                        onClick={() => onDeleteOperacao(linha.id_linha_operacao)}
-                      >
-                        X
-                      </button>
+                      {linhasEditaveis && (
+                        <button
+                          type="button"
+                          className="btn-xs btn-danger"
+                          onClick={() => onDeleteOperacao(linha.id_linha_operacao)}
+                        >
+                          X
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -255,6 +298,7 @@ export default function OrcamentoDetailsPanel({
 
       {activeTab === 'servicos' && (
         <div>
+          {linhasEditaveis && (
           <form className="add-line-form" onSubmit={onAddServico}>
             <select
               value={addSvcForm.id_servico}
@@ -282,13 +326,14 @@ export default function OrcamentoDetailsPanel({
             />
             <button type="submit">Adicionar</button>
           </form>
+          )}
 
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
                   <th>ID Linha</th>
-                  <th>ID Serviço</th>
+                  <th>Serviço</th>
                   <th>Qtd</th>
                   <th>Preço Unit.</th>
                   <th>Custo Total</th>
@@ -300,19 +345,21 @@ export default function OrcamentoDetailsPanel({
                 {linhasServicos.map((linha) => (
                   <tr key={linha.id_linha_servico}>
                     <td>{linha.id_linha_servico}</td>
-                    <td>{linha.id_servico}</td>
+                    <td title={nomeServico(linha.id_servico)}>{nomeServico(linha.id_servico)}</td>
                     <td>{linha.quantidade}</td>
                     <td>{formatMoney(linha.preco_unitario_snapshot)}</td>
                     <td>{formatMoney(linha.custo_total)}</td>
                     <td>{linha.observacoes || '-'}</td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn-xs btn-danger"
-                        onClick={() => onDeleteServico(linha.id_linha_servico)}
-                      >
-                        X
-                      </button>
+                      {linhasEditaveis && (
+                        <button
+                          type="button"
+                          className="btn-xs btn-danger"
+                          onClick={() => onDeleteServico(linha.id_linha_servico)}
+                        >
+                          X
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { formatMoney } from '../utils/formatters'
+import Pagination from '../components/Pagination'
 import {
   createMaterial,
   deleteMaterial,
-  listMateriais,
+  listMateriaisPaged,
   updateMaterial,
 } from '../services/materialService'
+
+const PAGE_SIZE = 30
 
 const EMPTY_FORM = {
   codigo: '',
@@ -20,6 +23,8 @@ const EMPTY_FORM = {
 
 export default function MateriaisModule({ token }) {
   const [items, setItems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -29,13 +34,20 @@ export default function MateriaisModule({ token }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (p, q) => {
     if (!token) return
     setLoading(true)
     setError('')
     try {
-      setItems(await listMateriais(token))
+      const res = await listMateriaisPaged(token, {
+        q,
+        limit: PAGE_SIZE,
+        offset: (p - 1) * PAGE_SIZE,
+      })
+      setItems(res.items)
+      setTotal(res.total)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -43,9 +55,19 @@ export default function MateriaisModule({ token }) {
     }
   }, [token])
 
+  // Debounce da pesquisa: ao mudar, volta à página 1.
   useEffect(() => {
-    load()
-  }, [load])
+    const t = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [search])
+
+  // Fetch sempre que a página ou a pesquisa (debounced) mudam.
+  useEffect(() => {
+    load(page, debouncedSearch)
+  }, [page, debouncedSearch, load])
 
   function openCreate() {
     setEditingId(null)
@@ -104,7 +126,7 @@ export default function MateriaisModule({ token }) {
         setSuccess('Material criado.')
       }
       cancelForm()
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -119,25 +141,18 @@ export default function MateriaisModule({ token }) {
     try {
       await deleteMaterial(token, item.id_material)
       setSuccess('Material eliminado.')
-      await load()
+      await load(page, debouncedSearch)
     } catch (e) {
       setError(e.message)
     }
   }
-
-  const filtered = items.filter(
-    (i) =>
-      !search ||
-      i.codigo?.toLowerCase().includes(search.toLowerCase()) ||
-      i.nome?.toLowerCase().includes(search.toLowerCase()),
-  )
 
   return (
     <div className="module-layout">
       <div className="panel">
         <div className="panel-head">
           <h3>Materiais</h3>
-          <span>{loading ? 'A carregar...' : `${items.length} registos`}</span>
+          <span>{loading ? 'A carregar...' : `${total} registos`}</span>
         </div>
 
         {error && <p className="message error">{error}</p>}
@@ -194,8 +209,8 @@ export default function MateriaisModule({ token }) {
           </form>
         )}
 
-        <div className="table-scroll">
-          <table>
+        <div className="table-scroll fit-table-wrap">
+          <table className="fit-table materiais-fit">
             <thead>
               <tr>
                 <th>ID</th>
@@ -210,7 +225,7 @@ export default function MateriaisModule({ token }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i) => (
+              {items.map((i) => (
                 <tr key={i.id_material}>
                   <td>{i.id_material}</td>
                   <td>{i.codigo}</td>
@@ -228,10 +243,18 @@ export default function MateriaisModule({ token }) {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && <tr><td colSpan={9}>Sem materiais.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9}>{loading ? 'A carregar...' : 'Sem materiais.'}</td></tr>}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          loading={loading}
+          onPageChange={setPage}
+        />
       </div>
     </div>
   )

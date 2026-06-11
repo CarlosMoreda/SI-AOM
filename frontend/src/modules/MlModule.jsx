@@ -66,6 +66,7 @@ export default function MlModule({ token, user }) {
   const [activeTab, setActiveTab] = useState('prever')
 
   const [params, setParams] = useState(EMPTY_PARAMS)
+  const [quantidade, setQuantidade] = useState('1')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState(null)
@@ -353,6 +354,17 @@ export default function MlModule({ token, user }) {
             </section>
 
             <div className="ml-action-row">
+              <label className="ml-qtd-label">
+                Nº de unidades
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(e.target.value)}
+                  title="A previsão é por estrutura. O total da encomenda é multiplicado por este valor."
+                />
+              </label>
               <button type="submit" disabled={loading} className="ml-submit-button">
                 {loading ? 'A calcular...' : 'Prever orçamento'}
               </button>
@@ -451,6 +463,22 @@ export default function MlModule({ token, user }) {
                   <small>execução + setup</small>
                 </div>
               </div>
+
+              {(() => {
+                const qtdNum = Math.max(1, Math.round(Number(quantidade) || 1))
+                if (qtdNum <= 1) return null
+                const totalUnidades = (Number(result.custo_total) || 0) * qtdNum
+                const horasUnidades = Number(result.tempo_previsto)
+                return (
+                  <div className="ml-order-total">
+                    <span>Total para {qtdNum} unidades</span>
+                    <strong>{formatMoney(totalUnidades)}</strong>
+                    {Number.isFinite(horasUnidades) && (
+                      <small>{(horasUnidades * qtdNum).toFixed(1)} h totais ({formatMoney(Number(result.custo_total) || 0)}/unidade)</small>
+                    )}
+                  </div>
+                )
+              })()}
 
               {result.custo_total > 0 && (
                 <>

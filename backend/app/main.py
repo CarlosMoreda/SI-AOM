@@ -60,6 +60,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Permite que o frontend leia o total de registos para a paginacao.
+    expose_headers=["X-Total-Count"],
 )
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])

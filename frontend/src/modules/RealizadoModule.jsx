@@ -25,6 +25,14 @@ const TAB_LABELS = {
   servicos: 'Serviços',
 }
 
+// Em execucao: registo normal. Concluido: correcoes pos-fecho continuam
+// possiveis (espelha a regra do backend).
+const ESTADOS_REALIZADO_PERMITIDOS = new Set(['em_execucao', 'concluido'])
+
+function permiteRealizadoPorEstado(estado) {
+  return ESTADOS_REALIZADO_PERMITIDOS.has(String(estado || '').toLowerCase())
+}
+
 export default function RealizadoModule({ token }) {
   const [projects, setProjects] = useState([])
   const [orcamentos, setOrcamentos] = useState([])
@@ -107,6 +115,14 @@ export default function RealizadoModule({ token }) {
     () => new Map(catalogServicos.map((s) => [s.id_servico, s])),
     [catalogServicos],
   )
+  const projectById = useMemo(
+    () => new Map(projects.map((p) => [String(p.id_projeto), p])),
+    [projects],
+  )
+  const projectsComRealizado = useMemo(
+    () => projects.filter((p) => permiteRealizadoPorEstado(p.estado)),
+    [projects],
+  )
 
   function describeMaterial(idMaterial) {
     const mat = materialById.get(idMaterial)
@@ -124,9 +140,15 @@ export default function RealizadoModule({ token }) {
     return svc.codigo ? `${svc.codigo} - ${svc.nome}` : svc.nome
   }
 
-  const filteredOrcs = orcamentos.filter(
-    (o) => !filterProjectId || String(o.id_projeto) === filterProjectId,
-  )
+  const filteredOrcs = orcamentos.filter((o) => {
+    if (filterProjectId && String(o.id_projeto) !== filterProjectId) return false
+
+    const projeto = projectById.get(String(o.id_projeto))
+    return (
+      permiteRealizadoPorEstado(projeto?.estado)
+      && permiteRealizadoPorEstado(o.estado)
+    )
+  })
 
   async function handleProjectChange(projectId) {
     setFilterProjectId(projectId)
@@ -322,7 +344,7 @@ export default function RealizadoModule({ token }) {
         <div className="module-toolbar">
           <select value={filterProjectId} onChange={(e) => handleProjectChange(e.target.value)}>
             <option value="">Todos os projetos</option>
-            {projects.map((p) => (
+            {projectsComRealizado.map((p) => (
               <option key={p.id_projeto} value={p.id_projeto}>#{p.id_projeto} - {p.designacao}</option>
             ))}
           </select>

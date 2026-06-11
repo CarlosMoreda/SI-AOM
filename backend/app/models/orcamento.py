@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, text,
+    DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -37,6 +37,11 @@ class Orcamento(Base):
 
     estado: Mapped[str] = mapped_column(String(50), nullable=False, default="em_preparacao")
     margem_percentual: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
+
+    # Nº de estruturas iguais que o cliente encomendou (ex.: 50 guarda-corpos).
+    # As linhas, peso e area sao POR UNIDADE; os custos totais do cabecalho sao
+    # multiplicados por este valor. Default 1 mantem orcamentos antigos iguais.
+    quantidade_unidades: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     peso_total_kg: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     area_total_m2: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)

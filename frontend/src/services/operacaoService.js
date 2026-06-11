@@ -1,7 +1,12 @@
-import { apiRequest } from './apiClient.js'
+import { apiRequest, apiRequestPaged } from './apiClient.js'
 
 export async function listOperacoes(token) {
   return apiRequest('/operacoes/', { token })
+}
+
+/** Lista paginada de operações: devolve { items, total }. */
+export async function listOperacoesPaged(token, { q = '', limit = 30, offset = 0 } = {}) {
+  return apiRequestPaged('/operacoes/', { token, params: { q, limit, offset } })
 }
 
 export async function createOperacao(token, payload) {

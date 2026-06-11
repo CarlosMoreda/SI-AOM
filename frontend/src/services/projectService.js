@@ -1,7 +1,12 @@
-import { apiRequest } from './apiClient.js'
+import { apiRequest, apiRequestPaged } from './apiClient.js'
 
 export async function listProjects(token) {
   return apiRequest('/projetos/', { token })
+}
+
+/** Lista paginada de projetos: devolve { items, total }. */
+export async function listProjectsPaged(token, { q = '', limit = 30, offset = 0 } = {}) {
+  return apiRequestPaged('/projetos/', { token, params: { q, limit, offset } })
 }
 
 export async function createProject(token, payload) {

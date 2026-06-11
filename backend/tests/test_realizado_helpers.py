@@ -11,6 +11,20 @@ from app.routers.realizado import (
 
 def test_realizado_cost_helpers_quantize_values():
     assert _calc_custo_material(Decimal("2"), Decimal("10.1234")) == Decimal("20.25")
+    # Material a 'kg' (ex.: chapa): usa o PESO como base.
+    assert _calc_custo_material(
+        Decimal("2"),
+        Decimal("10.1234"),
+        unidade="kg",
+        peso_kg=Decimal("5"),
+    ) == Decimal("50.62")
+    # Material a 'm' (ex.: tubo): usa a QUANTIDADE, ignora o peso.
+    assert _calc_custo_material(
+        Decimal("2"),
+        Decimal("10.1234"),
+        unidade="m",
+        peso_kg=Decimal("5"),
+    ) == Decimal("20.25")
     assert _calc_custo_operacao(
         Decimal("1.5"),
         Decimal("0.5"),

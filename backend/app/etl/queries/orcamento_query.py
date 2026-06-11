@@ -62,13 +62,19 @@ SELECT
             ELSE NULL
         END
     ) AS lead_time,
-    o.custo_total_materiais,
-    o.custo_total_operacoes,
-    o.custo_total_servicos,
-    COALESCE(rm.total, 0) AS real_materiais,
-    COALESCE(ro.total, 0) AS real_operacoes,
-    COALESCE(rs.total, 0) AS real_servicos,
-    COALESCE(rho.total, 0) AS real_horas
+    -- Normalizacao POR ESTRUTURA: as features (peso_total_kg, area_total_m2,
+    -- numero_pecas) sao por unidade, mas os custos/reais do cabecalho estao
+    -- multiplicados por quantidade_unidades. Dividimos os totais (orcados e
+    -- reais) por quantidade_unidades para o dataset ser sempre por estrutura,
+    -- mantendo o alvo alinhado com as features. Para qtd=1 (caso normal) os
+    -- valores ficam inalterados. quantidade_unidades >= 1 (constraint).
+    ROUND(o.custo_total_materiais / o.quantidade_unidades, 2) AS custo_total_materiais,
+    ROUND(o.custo_total_operacoes / o.quantidade_unidades, 2) AS custo_total_operacoes,
+    ROUND(o.custo_total_servicos / o.quantidade_unidades, 2) AS custo_total_servicos,
+    ROUND(COALESCE(rm.total, 0) / o.quantidade_unidades, 2) AS real_materiais,
+    ROUND(COALESCE(ro.total, 0) / o.quantidade_unidades, 2) AS real_operacoes,
+    ROUND(COALESCE(rs.total, 0) / o.quantidade_unidades, 2) AS real_servicos,
+    ROUND(COALESCE(rho.total, 0) / o.quantidade_unidades, 2) AS real_horas
 FROM orcamento o
 JOIN projeto p
     ON p.id_projeto = o.id_projeto

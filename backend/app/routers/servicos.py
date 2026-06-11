@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,19 +24,31 @@ router = APIRouter()
 
 @router.get("/", response_model=list[ServicoResponse], dependencies=READ_DEPS)
 def listar_servicos(
-    limit: int = Query(
-        default=500,
-        gt=0,
-        le=10000,
-        description="Maximo de registos a devolver",
+    response: Response,
+    q: str | None = Query(None, description="Pesquisa por codigo ou nome"),
+    limit: int | None = Query(
+        default=None, ge=1, le=500,
+        description="Registos por pagina. Omitir devolve todos (catalogo).",
     ),
+    offset: int = Query(default=0, ge=0, description="Deslocamento (pagina)"),
     db: Session = Depends(get_db),
 ):
-    stmt = (
-        select(Servico)
-        .order_by(Servico.id_servico.desc())
-        .limit(limit)
-    )
+    base = select(Servico)
+    if q:
+        termo = func.unaccent(f"%{q.lower()}%")
+        base = base.where(
+            or_(
+                func.unaccent(func.lower(Servico.codigo)).like(termo),
+                func.unaccent(func.lower(Servico.nome)).like(termo),
+            )
+        )
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    response.headers["X-Total-Count"] = str(total)
+
+    stmt = base.order_by(Servico.id_servico.desc())
+    if limit is not None:
+        stmt = stmt.limit(limit).offset(offset)
     return db.scalars(stmt).all()
 
 

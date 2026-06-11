@@ -433,5 +433,6 @@ export function useDashboard(token, perfil) {
     budgetRealError,
     dashboardKpis,
     recentBudgets,
+    refreshDashboardData: refreshCoreData,
   }
 }

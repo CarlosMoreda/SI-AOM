@@ -35,7 +35,10 @@ from app.schemas.detalhe_servico_orcamento import (
     DetalheServicoOrcamentoResponse,
     DetalheServicoOrcamentoUpdate,
 )
-from app.services.orcamento_service import recalcular_totais_orcamento
+from app.services.orcamento_service import (
+    recalcular_totais_orcamento,
+    validar_linhas_editaveis,
+)
 
 # Producao precisa de LER as linhas (materiais/operacoes/servicos) de um
 # orcamento para escolher qual registar realizado. Nao pode editar.
@@ -71,9 +74,40 @@ def _obter_orcamento_404(db: Session, id_orcamento: int) -> Orcamento:
     return orcamento
 
 
-def _calc_custo_material(quantidade: Decimal, preco: Decimal, desperdicio_percent: Decimal) -> Decimal:
+def _garantir_linhas_editaveis(db: Session, id_orcamento: int) -> None:
+    """Bloqueia alteracoes as linhas fora de em_preparacao/em_revisao.
+
+    A partir de 'validado' o orcamento e imutavel (relatorio 3.5): qualquer
+    alteracao implica criar uma nova versao.
+    """
+    permitido, detalhe = validar_linhas_editaveis(db, id_orcamento)
+    if not permitido:
+        status_code = (
+            status.HTTP_404_NOT_FOUND
+            if detalhe == "Orçamento não encontrado"
+            else status.HTTP_409_CONFLICT
+        )
+        raise HTTPException(status_code=status_code, detail=detalhe)
+
+
+def _calc_custo_material(
+    quantidade: Decimal,
+    preco: Decimal,
+    desperdicio_percent: Decimal,
+    unidade: str | None = None,
+    peso_kg: Decimal | None = None,
+) -> Decimal:
+    # Materiais cobrados por kg (ex.: chapa laser) usam o PESO como base de
+    # calculo. Os restantes (tubo em metros, pecas em 'un', etc.) usam a
+    # QUANTIDADE x preco unitario do catalogo. Desta forma, se um material
+    # passar a ser cobrado a 'kg', o calculo por peso aplica-se automaticamente;
+    # enquanto estiver em 'm'/'un' usa sempre a quantidade.
+    if unidade == "kg" and peso_kg is not None:
+        base_calculo = _to_decimal(peso_kg)
+    else:
+        base_calculo = _to_decimal(quantidade)
     fator = Decimal("1") + (_to_decimal(desperdicio_percent) / Decimal("100"))
-    return _q2(_to_decimal(quantidade) * _to_decimal(preco) * fator)
+    return _q2(base_calculo * _to_decimal(preco) * fator)
 
 
 def _calc_custo_operacao(horas: Decimal, tempo_setup_h: Decimal, custo_hora: Decimal) -> Decimal:
@@ -112,6 +146,7 @@ def criar_material_orcamento(
     db: Session = Depends(get_db),
 ):
     _obter_orcamento_404(db, id_orcamento)
+    _garantir_linhas_editaveis(db, id_orcamento)
 
     material = db.get(Material, payload.id_material)
     if not material:
@@ -133,6 +168,8 @@ def criar_material_orcamento(
             payload.quantidade,
             preco_snapshot,
             payload.desperdicio_percent,
+            material.unidade,
+            payload.peso_kg,
         ),
         observacoes=payload.observacoes,
     )
@@ -166,6 +203,7 @@ def atualizar_material_orcamento(
     linha = db.get(DetalheMaterialOrcamento, id_linha_material)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de material não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -192,10 +230,14 @@ def atualizar_material_orcamento(
     elif material is not None:
         linha.preco_unitario_snapshot = _q4(material.custo_unitario_default)
 
+    # Unidade do material da linha (decide se o custo e por peso ou quantidade).
+    mat_atual = material if material is not None else db.get(Material, linha.id_material)
     linha.custo_total = _calc_custo_material(
         linha.quantidade,
         linha.preco_unitario_snapshot,
         linha.desperdicio_percent,
+        mat_atual.unidade if mat_atual else None,
+        linha.peso_kg,
     )
 
     try:
@@ -221,6 +263,7 @@ def eliminar_material_orcamento(id_linha_material: int, db: Session = Depends(ge
     linha = db.get(DetalheMaterialOrcamento, id_linha_material)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de material não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     id_orcamento = linha.id_orcamento
 
@@ -266,6 +309,7 @@ def criar_operacao_orcamento(
     db: Session = Depends(get_db),
 ):
     _obter_orcamento_404(db, id_orcamento)
+    _garantir_linhas_editaveis(db, id_orcamento)
 
     operacao = db.get(Operacao, payload.id_operacao)
     if not operacao:
@@ -318,6 +362,7 @@ def atualizar_operacao_orcamento(
     linha = db.get(DetalheOperacaoOrcamento, id_linha_operacao)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de operação não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -369,6 +414,7 @@ def eliminar_operacao_orcamento(id_linha_operacao: int, db: Session = Depends(ge
     linha = db.get(DetalheOperacaoOrcamento, id_linha_operacao)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de operação não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     id_orcamento = linha.id_orcamento
 
@@ -414,6 +460,7 @@ def criar_servico_orcamento(
     db: Session = Depends(get_db),
 ):
     _obter_orcamento_404(db, id_orcamento)
+    _garantir_linhas_editaveis(db, id_orcamento)
 
     servico = db.get(Servico, payload.id_servico)
     if not servico:
@@ -461,6 +508,7 @@ def atualizar_servico_orcamento(
     linha = db.get(DetalheServicoOrcamento, id_linha_servico)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de serviço não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     dados = payload.model_dump(exclude_unset=True)
 
@@ -509,6 +557,7 @@ def eliminar_servico_orcamento(id_linha_servico: int, db: Session = Depends(get_
     linha = db.get(DetalheServicoOrcamento, id_linha_servico)
     if not linha:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linha de serviço não encontrada")
+    _garantir_linhas_editaveis(db, linha.id_orcamento)
 
     id_orcamento = linha.id_orcamento
 

@@ -476,82 +476,116 @@ tbody tr:hover td {
   max-width: 220px;
 }
 
-.clientes-table-wrap {
+.row-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+/* Tabelas densas (Clientes, Projetos): cabem na largura sem scroll horizontal.
+   Larguras fixas por coluna, texto quebra dentro da celula e os botoes de
+   acao ficam sempre lado a lado numa coluna com largura suficiente. */
+.fit-table-wrap {
   overflow-x: hidden;
 }
 
-.clientes-table {
+.fit-table {
   table-layout: fixed;
 }
 
-.clientes-table th,
-.clientes-table td {
-  padding: 8px 7px;
-  font-size: 0.82rem;
-  line-height: 1.28;
+.fit-table th,
+.fit-table td {
+  padding: 7px 7px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  /* Mostra o texto todo (quebra quando necessario). As colunas tem largura
+     fixa, por isso NAO mudam ao trocar de pagina; so a altura da linha pode
+     variar quando um texto e mais comprido. Alinhamento ao topo para ficar
+     limpo quando ha quebra. */
+  white-space: normal;
   overflow-wrap: anywhere;
+  vertical-align: top;
 }
 
-.clientes-table th:nth-child(1),
-.clientes-table td:nth-child(1) {
-  width: 5%;
+/* A coluna de acoes (ultima) mantem os botoes lado a lado, sem quebra. */
+.fit-table td:last-child .row-actions {
+  flex-wrap: nowrap;
 }
 
-.clientes-table th:nth-child(2),
-.clientes-table td:nth-child(2) {
-  width: 17%;
-}
-
-.clientes-table th:nth-child(3),
-.clientes-table td:nth-child(3) {
-  width: 8%;
-}
-
-.clientes-table th:nth-child(4),
-.clientes-table td:nth-child(4) {
-  width: 15%;
-}
-
-.clientes-table th:nth-child(5),
-.clientes-table td:nth-child(5) {
-  width: 10%;
-}
-
-.clientes-table th:nth-child(6),
-.clientes-table td:nth-child(6) {
-  width: 19%;
-}
-
-.clientes-table th:nth-child(7),
-.clientes-table td:nth-child(7) {
-  width: 6%;
-}
-
-.clientes-table th:nth-child(8),
-.clientes-table td:nth-child(8) {
-  width: 8%;
-}
-
-.clientes-table th:nth-child(9),
-.clientes-table td:nth-child(9) {
-  width: 12%;
-}
-
-.clientes-table .row-actions {
+.fit-table .row-actions {
   gap: 4px;
 }
 
-.clientes-table .btn-xs {
+.fit-table .btn-xs {
   min-height: 28px;
   padding: 4px 6px;
   font-size: 0.72rem;
 }
 
-.row-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+/* Clientes: 9 colunas (ID, Nome, NIF, Email, Telefone, Morada, Ativo, Criado, Acoes) */
+.clientes-fit th:nth-child(1), .clientes-fit td:nth-child(1) { width: 4%; }
+.clientes-fit th:nth-child(2), .clientes-fit td:nth-child(2) { width: 18%; }
+.clientes-fit th:nth-child(3), .clientes-fit td:nth-child(3) { width: 8%; }
+.clientes-fit th:nth-child(4), .clientes-fit td:nth-child(4) { width: 18%; }
+.clientes-fit th:nth-child(5), .clientes-fit td:nth-child(5) { width: 9%; }
+.clientes-fit th:nth-child(6), .clientes-fit td:nth-child(6) { width: 16%; }
+.clientes-fit th:nth-child(7), .clientes-fit td:nth-child(7) { width: 5%; }
+.clientes-fit th:nth-child(8), .clientes-fit td:nth-child(8) { width: 8%; }
+.clientes-fit th:nth-child(9), .clientes-fit td:nth-child(9) { width: 14%; }
+
+/* Projetos: 10 colunas (ID, Ref, Designacao, Cliente, Tipologia, Estado, Inicio, Entrega, Criado, Acoes) */
+.projetos-fit th:nth-child(1), .projetos-fit td:nth-child(1) { width: 4%; }
+.projetos-fit th:nth-child(2), .projetos-fit td:nth-child(2) { width: 11%; }
+.projetos-fit th:nth-child(3), .projetos-fit td:nth-child(3) { width: 15%; }
+.projetos-fit th:nth-child(4), .projetos-fit td:nth-child(4) { width: 14%; }
+.projetos-fit th:nth-child(5), .projetos-fit td:nth-child(5) { width: 9%; }
+.projetos-fit th:nth-child(6), .projetos-fit td:nth-child(6) { width: 10%; }
+.projetos-fit th:nth-child(7), .projetos-fit td:nth-child(7) { width: 8%; }
+.projetos-fit th:nth-child(8), .projetos-fit td:nth-child(8) { width: 8%; }
+.projetos-fit th:nth-child(9), .projetos-fit td:nth-child(9) { width: 7%; }
+.projetos-fit th:nth-child(10), .projetos-fit td:nth-child(10) { width: 14%; }
+
+/* Materiais: 9 colunas (ID, Codigo, Nome, Unidade, Tipo, Qualidade, Custo, Ativo, Acoes) */
+.materiais-fit th:nth-child(1), .materiais-fit td:nth-child(1) { width: 5%; }
+.materiais-fit th:nth-child(2), .materiais-fit td:nth-child(2) { width: 13%; }
+.materiais-fit th:nth-child(3), .materiais-fit td:nth-child(3) { width: 22%; }
+.materiais-fit th:nth-child(4), .materiais-fit td:nth-child(4) { width: 8%; }
+.materiais-fit th:nth-child(5), .materiais-fit td:nth-child(5) { width: 11%; }
+.materiais-fit th:nth-child(6), .materiais-fit td:nth-child(6) { width: 11%; }
+.materiais-fit th:nth-child(7), .materiais-fit td:nth-child(7) { width: 10%; }
+.materiais-fit th:nth-child(8), .materiais-fit td:nth-child(8) { width: 6%; }
+.materiais-fit th:nth-child(9), .materiais-fit td:nth-child(9) { width: 14%; }
+
+/* Operacoes: 8 colunas (ID, Codigo, Nome, Categoria, Custo/hora, Setup, Ativo, Acoes) */
+.operacoes-fit th:nth-child(1), .operacoes-fit td:nth-child(1) { width: 5%; }
+.operacoes-fit th:nth-child(2), .operacoes-fit td:nth-child(2) { width: 13%; }
+.operacoes-fit th:nth-child(3), .operacoes-fit td:nth-child(3) { width: 26%; }
+.operacoes-fit th:nth-child(4), .operacoes-fit td:nth-child(4) { width: 14%; }
+.operacoes-fit th:nth-child(5), .operacoes-fit td:nth-child(5) { width: 12%; }
+.operacoes-fit th:nth-child(6), .operacoes-fit td:nth-child(6) { width: 9%; }
+.operacoes-fit th:nth-child(7), .operacoes-fit td:nth-child(7) { width: 7%; }
+.operacoes-fit th:nth-child(8), .operacoes-fit td:nth-child(8) { width: 14%; }
+
+/* Servicos: 7 colunas (ID, Codigo, Nome, Unidade, Preco, Ativo, Acoes) */
+.servicos-fit th:nth-child(1), .servicos-fit td:nth-child(1) { width: 6%; }
+.servicos-fit th:nth-child(2), .servicos-fit td:nth-child(2) { width: 15%; }
+.servicos-fit th:nth-child(3), .servicos-fit td:nth-child(3) { width: 33%; }
+.servicos-fit th:nth-child(4), .servicos-fit td:nth-child(4) { width: 10%; }
+.servicos-fit th:nth-child(5), .servicos-fit td:nth-child(5) { width: 14%; }
+.servicos-fit th:nth-child(6), .servicos-fit td:nth-child(6) { width: 8%; }
+.servicos-fit th:nth-child(7), .servicos-fit td:nth-child(7) { width: 14%; }
+
+/* Orcamentos: 10 colunas (ID, Projeto, Versao, Uni, Estado, Margem, Custo, Preco, Criado, Acoes) */
+.orcamentos-fit th:nth-child(1), .orcamentos-fit td:nth-child(1) { width: 5%; }
+.orcamentos-fit th:nth-child(2), .orcamentos-fit td:nth-child(2) { width: 8%; }
+.orcamentos-fit th:nth-child(3), .orcamentos-fit td:nth-child(3) { width: 7%; }
+.orcamentos-fit th:nth-child(4), .orcamentos-fit td:nth-child(4) { width: 5%; }
+.orcamentos-fit th:nth-child(5), .orcamentos-fit td:nth-child(5) { width: 13%; }
+.orcamentos-fit th:nth-child(6), .orcamentos-fit td:nth-child(6) { width: 8%; }
+.orcamentos-fit th:nth-child(7), .orcamentos-fit td:nth-child(7) { width: 14%; }
+.orcamentos-fit th:nth-child(8), .orcamentos-fit td:nth-child(8) { width: 14%; }
+.orcamentos-fit th:nth-child(9), .orcamentos-fit td:nth-child(9) { width: 12%; }
+.orcamentos-fit th:nth-child(10), .orcamentos-fit td:nth-child(10) { width: 14%; }
 
 .btn-xs {
   min-height: 30px;
@@ -1479,10 +1513,40 @@ tbody tr:hover td {
 
 .ml-action-row {
   margin-top: 14px;
+  align-items: flex-end;
 }
 
 .ml-submit-button {
   min-width: 200px;
+}
+
+.ml-qtd-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  max-width: 150px;
+}
+
+.ml-order-total {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(66, 183, 223, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ml-order-total strong {
+  font-size: 1.2rem;
+  color: var(--primary);
+}
+
+.ml-order-total small {
+  color: var(--muted);
 }
 
 .ml-train-button {
@@ -1639,4 +1703,24 @@ tbody tr:hover td {
   .analytics-lines-pagination-actions button {
     flex: 1;
   }
+}
+
+/* Paginação server-side (listas de Clientes, Projetos, Orçamentos, etc.) */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.pagination-actions {
+  display: flex;
+  gap: 8px;
 }

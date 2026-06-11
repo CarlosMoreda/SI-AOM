@@ -56,6 +56,7 @@ function App() {
       budgetRealError={dashboard.budgetRealError}
       dashboardKpis={dashboard.dashboardKpis}
       recentBudgets={dashboard.recentBudgets}
+      refreshDashboardData={dashboard.refreshDashboardData}
     />
   )
 }

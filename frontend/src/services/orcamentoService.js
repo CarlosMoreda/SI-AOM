@@ -1,8 +1,16 @@
-import { apiRequest, API_BASE_URL, ApiError } from './apiClient.js'
+import { apiRequest, apiRequestPaged, API_BASE_URL, ApiError } from './apiClient.js'
 import { formatVersionLabel } from '../utils/formatters.js'
 
 export async function listOrcamentos(token) {
   return apiRequest('/orcamentos/', { token })
+}
+
+/** Lista paginada de orçamentos (filtro opcional por projeto): { items, total }. */
+export async function listOrcamentosPaged(token, { idProjeto = '', limit = 30, offset = 0 } = {}) {
+  return apiRequestPaged('/orcamentos/', {
+    token,
+    params: { id_projeto: idProjeto, limit, offset },
+  })
 }
 
 /**

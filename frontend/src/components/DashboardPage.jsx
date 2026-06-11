@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import SiaomMenu from './SiaomMenu'
 import { getVisibleMenuItems } from './menuConfig'
@@ -45,7 +45,7 @@ function BudgetTrendChart({ rows }) {
         return (
           <article className="trend-item" key={row.id_orcamento}>
             <div className="trend-head">
-              <p>Orçamento #{row.id_orcamento} - {formatVersionLabel(row.versao)}</p>
+              <p>{row.designacao_projeto || `Orçamento #${row.id_orcamento}`} - {formatVersionLabel(row.versao)}</p>
             </div>
 
             <div className="trend-bar-row">
@@ -122,12 +122,14 @@ export default function DashboardPage({
   budgetRealError,
   dashboardKpis,
   recentBudgets,
+  refreshDashboardData,
 }) {
   const [selectedModule, setSelectedModule] = useState('dashboard')
   const [lineTypeFilter, setLineTypeFilter] = useState('all')
   const [lineSearchTerm, setLineSearchTerm] = useState('')
   const [lineSortKey, setLineSortKey] = useState('custo:desc')
   const [linePage, setLinePage] = useState(1)
+  const shouldRefreshOnDashboardEntryRef = useRef(false)
 
   const visibleMenuItems = useMemo(
     () => getVisibleMenuItems(user?.perfil || 'administrador'),
@@ -141,6 +143,18 @@ export default function DashboardPage({
   const activeModule = visibleModuleKeys.has(selectedModule)
     ? selectedModule
     : visibleMenuItems[0]?.key || 'definicoes'
+
+  useEffect(() => {
+    if (activeModule !== 'dashboard') {
+      shouldRefreshOnDashboardEntryRef.current = true
+      return
+    }
+
+    if (!shouldRefreshOnDashboardEntryRef.current) return
+
+    shouldRefreshOnDashboardEntryRef.current = false
+    refreshDashboardData?.()
+  }, [activeModule, refreshDashboardData])
 
   const selectedProject = useMemo(
     () => projects.find((project) => String(project.id_projeto) === String(selectedProjectId)) || null,
@@ -355,7 +369,7 @@ export default function DashboardPage({
                   <p className="kpi-value">{formatMoney(globalTotalReal)}</p>
                 </article>
                 <article className="kpi-card">
-                  <p className="kpi-label">Ticket médio</p>
+                  <p className="kpi-label">Custo médio</p>
                   <p className="kpi-value">{formatMoney(globalTicketMedio)}</p>
                 </article>
                 <article className="kpi-card">

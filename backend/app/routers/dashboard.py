@@ -99,8 +99,31 @@ def dashboard_kpis(db: Session = Depends(get_db)):
     """
     total_projetos = db.scalar(select(func.count(Projeto.id_projeto))) or 0
     total_orcamentos = db.scalar(select(func.count(Orcamento.id_orcamento))) or 0
+
+    # total_orcado considera apenas a ULTIMA versao de cada projeto, evitando
+    # contar duas vezes o orcamento de projetos que tiveram revisao (v1 + v2).
+    # "Ultima versao" = a mais recentemente criada por projeto.
+    _rn_versao = func.row_number().over(
+        partition_by=Orcamento.id_projeto,
+        order_by=(
+            Orcamento.data_criacao.desc(),
+            Orcamento.id_orcamento.desc(),
+        ),
+    ).label("rn")
+    ultima_versao_sq = select(
+        Orcamento.custo_total_orcado.label("custo"),
+        _rn_versao,
+    ).subquery()
+
     total_orcado = db.scalar(
-        select(func.coalesce(func.sum(Orcamento.custo_total_orcado), 0))
+        select(func.coalesce(func.sum(ultima_versao_sq.c.custo), 0)).where(
+            ultima_versao_sq.c.rn == 1
+        )
+    ) or 0
+    num_ultimas_versoes = db.scalar(
+        select(func.count())
+        .select_from(ultima_versao_sq)
+        .where(ultima_versao_sq.c.rn == 1)
     ) or 0
 
     # Total real: soma das 3 tabelas de realizado.
@@ -115,16 +138,51 @@ def dashboard_kpis(db: Session = Depends(get_db)):
     ) or 0
     total_real = Decimal(str(real_materiais)) + Decimal(str(real_operacoes)) + Decimal(str(real_servicos))
 
+    # Custo medio = custo orcado medio por projeto, usando a mesma base
+    # (ultima versao de cada projeto) que o total_orcado, para coerencia.
     ticket_medio = (
-        Decimal(str(total_orcado)) / Decimal(total_orcamentos)
-        if total_orcamentos > 0
+        Decimal(str(total_orcado)) / Decimal(num_ultimas_versoes)
+        if num_ultimas_versoes > 0
         else Decimal("0")
     )
 
+    # Desvio medio real: compara orcado vs real APENAS sobre os orcamentos que
+    # ja tem realizado registado. Caso contrario, o denominador incluiria o
+    # orcado de orcamentos ainda sem execucao (real = 0), distorcendo o valor
+    # para fortemente negativo sem significado de negocio.
+    mat_sq, op_sq, svc_sq = _real_total_por_orcamento_subquery(db)
+    real_por_orcamento = (
+        select(
+            Orcamento.custo_total_orcado.label("orcado"),
+            (
+                func.coalesce(mat_sq.c.total, 0)
+                + func.coalesce(op_sq.c.total, 0)
+                + func.coalesce(svc_sq.c.total, 0)
+            ).label("real"),
+        )
+        .outerjoin(mat_sq, mat_sq.c.id_orcamento == Orcamento.id_orcamento)
+        .outerjoin(op_sq, op_sq.c.id_orcamento == Orcamento.id_orcamento)
+        .outerjoin(svc_sq, svc_sq.c.id_orcamento == Orcamento.id_orcamento)
+    ).subquery()
+
+    orcado_com_real = db.scalar(
+        select(func.coalesce(func.sum(real_por_orcamento.c.orcado), 0)).where(
+            real_por_orcamento.c.real > 0
+        )
+    ) or 0
+    real_com_orcado = db.scalar(
+        select(func.coalesce(func.sum(real_por_orcamento.c.real), 0)).where(
+            real_por_orcamento.c.real > 0
+        )
+    ) or 0
+
     desvio_medio_percent = (
-        ((total_real - Decimal(str(total_orcado))) / Decimal(str(total_orcado)))
+        (
+            (Decimal(str(real_com_orcado)) - Decimal(str(orcado_com_real)))
+            / Decimal(str(orcado_com_real))
+        )
         * Decimal("100")
-        if Decimal(str(total_orcado)) > 0
+        if Decimal(str(orcado_com_real)) > 0
         else Decimal("0")
     )
 
@@ -174,6 +232,7 @@ def dashboard_orcamentos_recentes(
         select(
             Orcamento.id_orcamento,
             Orcamento.id_projeto,
+            Projeto.designacao.label("designacao_projeto"),
             Orcamento.versao,
             Orcamento.estado,
             Orcamento.data_criacao,
@@ -184,6 +243,7 @@ def dashboard_orcamentos_recentes(
                 + func.coalesce(svc_sq.c.total, 0)
             ).label("custo_total_real"),
         )
+        .outerjoin(Projeto, Projeto.id_projeto == Orcamento.id_projeto)
         .outerjoin(mat_sq, mat_sq.c.id_orcamento == Orcamento.id_orcamento)
         .outerjoin(op_sq, op_sq.c.id_orcamento == Orcamento.id_orcamento)
         .outerjoin(svc_sq, svc_sq.c.id_orcamento == Orcamento.id_orcamento)
@@ -198,6 +258,7 @@ def dashboard_orcamentos_recentes(
         OrcamentoRecenteItem(
             id_orcamento=row.id_orcamento,
             id_projeto=row.id_projeto,
+            designacao_projeto=row.designacao_projeto,
             versao=row.versao,
             estado=row.estado,
             data_criacao=row.data_criacao,
