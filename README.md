@@ -1,8 +1,6 @@
 # SI-AOM
 
-Sistema de Informacao para Apoio a Orcamentacao e Monitorizacao de fabrico.
-
-O SI-AOM e uma aplicacao web para gerir clientes, projetos, orcamentos,
+O SI-AOM é uma aplicacao web para gerir clientes, projetos, orcamentos,
 materiais, operacoes, servicos, custos realizados e previsoes de custo com ML.
 
 ## Funcionalidades
